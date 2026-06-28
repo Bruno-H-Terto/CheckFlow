@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from adapters.postgres import PostgresPlanRepository, PostgresStepRepository
+from adapters.kafka import KafkaEventPublisher
 from app.controllers.health_controller import router as health_router
 from app.controllers.plan_controller import router as plan_router
 from app.controllers.step_controller import router as step_router
@@ -35,6 +36,8 @@ def create_app(
                 plan_repo.close()
             if isinstance(step_repo, PostgresStepRepository):
                 step_repo.close()
+            if isinstance(event_publisher, KafkaEventPublisher):
+                event_publisher.close()
 
     application = FastAPI(title="Checkflow API", lifespan=lifespan)
     application.state.plan_service = PlanService(plan_repo)
@@ -48,4 +51,6 @@ def create_app(
     return application
 
 
-app = create_app()
+app = create_app(
+    event_publisher=KafkaEventPublisher(settings.KAFKA_BOOTSTRAP_SERVERS)
+)

@@ -107,7 +107,11 @@ def test_schedules_existing_step_execution(
 
     assert response.status_code == 202
     assert response.json()["step_id"] == 1
-    assert publisher.messages[0][0:2] == ("checkflow.step-executions", "1")
+    assert response.json()["execution_id"]
+    assert publisher.messages[0][0:2] == (
+        "checkflow.execution-events",
+        response.json()["execution_id"],
+    )
 
 
 def test_rejects_unknown_plan_and_step(client: TestClient) -> None:

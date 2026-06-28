@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from app.schemas.step_schema import (
     StepCreate,
     StepExecutionAccepted,
+    StepExecutionRequest,
     StepResponse,
     StepUpdate,
 )
@@ -126,15 +127,18 @@ def schedule_step_execution(
     step_id: int,
     scheduler: StepSchedulerDependency,
     step_service: StepServiceDependency,
+    payload: StepExecutionRequest | None = None,
 ) -> StepExecutionAccepted:
     try:
         step_service.get(step_id)
-        event = scheduler.schedule(step_id)
+        request = payload or StepExecutionRequest()
+        event = scheduler.schedule(step_id, request.scheduled_for)
     except StepNotFoundError as error:
         raise _not_found(error) from error
     return StepExecutionAccepted(
         event_id=event.event_id,
         event_type=event.event_type,
         step_id=event.step_id,
+        execution_id=event.execution_id,
         occurred_at=event.occurred_at,
     )
