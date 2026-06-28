@@ -7,26 +7,26 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from adapters.kafka import KafkaEventConsumer, KafkaEventPublisher
 from config.settings import settings
 from domain.entities.step import JsonValue
-from domain.events import StepExecutionRequested
+from domain.events import PlanExecutionRequested
 
 publisher = KafkaEventPublisher(settings.KAFKA_BOOTSTRAP_SERVERS)
 scheduler = BackgroundScheduler(timezone="UTC")
 
 
 def handle(payload: dict[str, JsonValue]) -> None:
-    if payload.get("event_type") != "step.execution.scheduled.v1":
+    if payload.get("event_type") != "plan.execution.scheduled.v1":
         return
 
     run_at = payload.get("scheduled_for")
-    step_id = payload.get("step_id")
+    plan_id = payload.get("plan_id")
     execution_id = payload.get("execution_id")
 
-    if not isinstance(run_at, str) or not isinstance(step_id, int):
-        raise ValueError("Scheduled event requires step_id and scheduled_for")
+    if not isinstance(run_at, str) or not isinstance(plan_id, int):
+        raise ValueError("Scheduled event requires plan_id and scheduled_for")
     if not isinstance(execution_id, str):
         raise ValueError("Scheduled event requires execution_id")
 
-    event = StepExecutionRequested(step_id=step_id, execution_id=execution_id)
+    event = PlanExecutionRequested(plan_id=plan_id, execution_id=execution_id)
 
     scheduler.add_job(
         publisher.publish,

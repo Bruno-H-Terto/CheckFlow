@@ -1,26 +1,27 @@
 from datetime import datetime
 
 from app.ports.event_publisher import EventPublisher
-from domain.events import StepExecutionRequested, StepExecutionScheduled
-
-type ScheduledExecution = StepExecutionRequested | StepExecutionScheduled
+from domain.events import PlanExecutionRequested, PlanExecutionScheduled
 
 
-class StepExecutionScheduler:
-    topic = "checkflow.execution.events"
+type ScheduledExecution = PlanExecutionRequested | PlanExecutionScheduled
+
+
+class PlanExecutionScheduler:
+    topic = "checkflow.execution-events"
 
     def __init__(self, publisher: EventPublisher) -> None:
         self._publisher = publisher
 
     def schedule(
         self,
-        step_id: int,
+        plan_id: int,
         scheduled_for: datetime | None = None,
     ) -> ScheduledExecution:
         event: ScheduledExecution
         if scheduled_for is None:
-            event = StepExecutionRequested(step_id=step_id)
+            event = PlanExecutionRequested(plan_id=plan_id)
         else:
-            event = StepExecutionScheduled(step_id=step_id, scheduled_for=scheduled_for)
+            event = PlanExecutionScheduled(plan_id=plan_id, scheduled_for=scheduled_for)
         self._publisher.publish(self.topic, event.execution_id, event.to_payload())
         return event

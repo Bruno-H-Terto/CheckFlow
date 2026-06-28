@@ -23,3 +23,15 @@ class PlanResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     active: bool
+
+
+class PlanExecutionRequest(BaseModel):
+    scheduled_for: datetime | None = None
+
+
+class PlanExecutionAccepted(BaseModel):
+    event_id: str
+    event_type: str
+    plan_id: int
+    execution_id: str
+    occurred_at: datetime

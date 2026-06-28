@@ -1,5 +1,5 @@
 from domain.entities.step import JsonValue
-from app.services import StepExecutionScheduler
+from app.services import PlanExecutionScheduler
 from datetime import UTC, datetime, timedelta
 
 
@@ -16,16 +16,16 @@ class SpyEventPublisher:
         self.messages.append((topic, key, payload))
 
 
-def test_schedules_step_execution_as_versioned_event() -> None:
+def test_schedules_plan_execution_as_versioned_event() -> None:
     publisher = SpyEventPublisher()
-    scheduler = StepExecutionScheduler(publisher)
+    scheduler = PlanExecutionScheduler(publisher)
 
-    event = scheduler.schedule(step_id=42)
+    event = scheduler.schedule(plan_id=42)
 
-    assert event.event_type == "step.execution.requested.v1"
+    assert event.event_type == "plan.execution.requested.v1"
     assert publisher.messages == [
         (
-            "checkflow.execution.events",
+            "checkflow.execution-events",
             event.execution_id,
             event.to_payload(),
         )
@@ -36,7 +36,7 @@ def test_publishes_future_execution_as_scheduled_event() -> None:
     publisher = SpyEventPublisher()
     run_at = datetime.now(UTC) + timedelta(minutes=5)
 
-    event = StepExecutionScheduler(publisher).schedule(42, run_at)
+    event = PlanExecutionScheduler(publisher).schedule(42, run_at)
 
-    assert event.event_type == "step.execution.scheduled.v1"
-    assert publisher.messages[0][0] == "checkflow.execution.events"
+    assert event.event_type == "plan.execution.scheduled.v1"
+    assert publisher.messages[0][0] == "checkflow.execution-events"

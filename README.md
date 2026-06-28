@@ -38,7 +38,7 @@ Serviços disponíveis:
 - Swagger UI: <http://localhost:8000/docs>
 - ReDoc: <http://localhost:8000/redoc>
 - OpenAPI JSON: <http://localhost:8000/openapi.json>
-- WebSocket: `ws://localhost:8001/ws/executions`
+- WebSocket: `ws://localhost:8001/ws/plans/{plan_id}/executions`
 
 Para encerrar:
 
@@ -79,10 +79,10 @@ DELETE /plans/{plan_id}
 ```text
 POST   /plans/{plan_id}/steps
 GET    /plans/{plan_id}/steps
-GET    /steps/{step_id}
-PUT    /steps/{step_id}
-DELETE /steps/{step_id}
-POST   /steps/{step_id}/executions
+GET    /plans/{plan_id}/steps/{step_id}
+PUT    /plans/{plan_id}/steps/{step_id}
+DELETE /plans/{plan_id}/steps/{step_id}
+POST   /plans/{plan_id}/executions
 ```
 
 Exemplo de step:
@@ -108,7 +108,7 @@ Exemplo de step:
 Execução imediata:
 
 ```bash
-curl -X POST http://localhost:8000/steps/1/executions \
+curl -X POST http://localhost:8000/plans/1/executions \
   -H 'Content-Type: application/json' \
   -d '{}'
 ```
@@ -121,17 +121,20 @@ Execução futura usa uma data ISO 8601 com timezone:
 
 ## Realtime e controle
 
-Conecte ao WebSocket para receber eventos como `started`, `completed` e `failed`.
+Conecte ao WebSocket para acompanhar o plano inteiro. Os eventos informam
+`plan_id`, `execution_id`, step atual, quantidade concluída e total de steps.
+O próximo step só é enfileirado após `step.execution.completed.v1`; uma falha
+encerra a execução do plano.
 Para controlar uma execução, envie:
 
 ```json
-{"command": "stop", "execution_id": "uuid", "step_id": 1}
+{"command": "stop", "execution_id": "uuid"}
 ```
 
 ou:
 
 ```json
-{"command": "restart", "execution_id": "uuid", "step_id": 1}
+{"command": "restart", "execution_id": "uuid"}
 ```
 
 O comando também vira evento no Kafka. O dispatcher revoga ou recria a task Celery.

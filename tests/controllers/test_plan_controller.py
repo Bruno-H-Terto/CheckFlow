@@ -6,12 +6,36 @@ from fastapi.testclient import TestClient
 from httpx import Response
 
 from app.main import create_app
-from tests.fakes import InMemoryPlanRepository
+from domain.entities.step import JsonValue
+from tests.fakes import InMemoryPlanRepository, InMemoryStepRepository
+
+
+class SpyEventPublisher:
+    def __init__(self) -> None:
+        self.messages: list[tuple[str, str, dict[str, JsonValue]]] = []
+
+    def publish(
+        self,
+        topic: str,
+        key: str,
+        payload: dict[str, JsonValue],
+    ) -> None:
+        self.messages.append((topic, key, payload))
 
 
 @pytest.fixture
-def client() -> Iterator[TestClient]:
-    with TestClient(create_app(InMemoryPlanRepository())) as test_client:
+def publisher() -> SpyEventPublisher:
+    return SpyEventPublisher()
+
+
+@pytest.fixture
+def client(publisher: SpyEventPublisher) -> Iterator[TestClient]:
+    application = create_app(
+        InMemoryPlanRepository(),
+        publisher,
+        InMemoryStepRepository(),
+    )
+    with TestClient(application) as test_client:
         yield test_client
 
 
@@ -70,3 +94,20 @@ def test_validates_plan_payload(client: TestClient) -> None:
     response = request(client, "POST", "/plans", {"name": ""})
 
     assert response.status_code == 422
+
+
+def test_schedules_the_whole_plan(
+    client: TestClient,
+    publisher: SpyEventPublisher,
+) -> None:
+    request(client, "POST", "/plans", {"name": "Order flow"})
+
+    response = request(client, "POST", "/plans/1/executions", {})
+
+    assert response.status_code == 202
+    assert response.json()["plan_id"] == 1
+    assert response.json()["event_type"] == "plan.execution.requested.v1"
+    assert publisher.messages[0][0:2] == (
+        "checkflow.execution-events",
+        response.json()["execution_id"],
+    )

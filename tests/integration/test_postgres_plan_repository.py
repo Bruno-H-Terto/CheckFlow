@@ -84,13 +84,18 @@ def test_postgres_step_crud_with_jsonb(
         StepAssertion(AssertionTarget.BODY, "created", path="status"),
     )
 
-    second = step_repository.add(Step(plan.id, 2, "Read order", action, assertions))
-    first = step_repository.add(Step(plan.id, 1, "Create order", action, assertions))
+    second = step_repository.add(
+        plan.id, Step(plan.id, 2, "Read order", action, assertions)
+    )
+    first = step_repository.add(
+        plan.id, Step(plan.id, 1, "Create order", action, assertions)
+    )
 
     assert step_repository.list_by_plan(plan.id) == [first, second]
     assert step_repository.get(plan.id, first.id or 0) == first
 
     updated = step_repository.update(
+        plan.id,
         Step(
             plan_id=plan.id,
             id=first.id,

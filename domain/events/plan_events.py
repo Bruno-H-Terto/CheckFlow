@@ -16,15 +16,15 @@ def _identifier() -> str:
 
 
 @dataclass(frozen=True, slots=True)
-class StepExecutionRequested:
-    step_id: int
+class PlanExecutionRequested:
+    plan_id: int
     execution_id: str = field(default_factory=_identifier)
     event_id: str = field(default_factory=_identifier)
     occurred_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
     @property
     def event_type(self) -> str:
-        return "step.execution.requested.v1"
+        return "plan.execution.requested.v1"
 
     def to_payload(self) -> dict[str, JsonValue]:
         return {
@@ -32,13 +32,13 @@ class StepExecutionRequested:
             "event_type": self.event_type,
             "occurred_at": self.occurred_at.isoformat(),
             "execution_id": self.execution_id,
-            "step_id": self.step_id,
+            "plan_id": self.plan_id,
         }
 
 
 @dataclass(frozen=True, slots=True)
-class StepExecutionScheduled:
-    step_id: int
+class PlanExecutionScheduled:
+    plan_id: int
     scheduled_for: datetime
     execution_id: str = field(default_factory=_identifier)
     event_id: str = field(default_factory=_identifier)
@@ -46,7 +46,7 @@ class StepExecutionScheduled:
 
     @property
     def event_type(self) -> str:
-        return "step.execution.scheduled.v1"
+        return "plan.execution.scheduled.v1"
 
     def to_payload(self) -> dict[str, JsonValue]:
         return {
@@ -54,22 +54,22 @@ class StepExecutionScheduled:
             "event_type": self.event_type,
             "occurred_at": self.occurred_at.isoformat(),
             "execution_id": self.execution_id,
-            "step_id": self.step_id,
+            "plan_id": self.plan_id,
             "scheduled_for": self.scheduled_for.isoformat(),
         }
 
 
 @dataclass(frozen=True, slots=True)
-class StepExecutionControlRequested:
+class PlanExecutionControlRequested:
     execution_id: str
-    step_id: int
+    plan_id: int
     command: ExecutionControl
     event_id: str = field(default_factory=_identifier)
     occurred_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
     @property
     def event_type(self) -> str:
-        return f"step.execution.{self.command.value}-requested.v1"
+        return f"plan.execution.{self.command.value}-requested.v1"
 
     def to_payload(self) -> dict[str, JsonValue]:
         return {
@@ -77,6 +77,6 @@ class StepExecutionControlRequested:
             "event_type": self.event_type,
             "occurred_at": self.occurred_at.isoformat(),
             "execution_id": self.execution_id,
-            "step_id": self.step_id,
+            "plan_id": self.plan_id,
             "command": self.command.value,
         }

@@ -11,7 +11,7 @@ from app.controllers.step_controller import router as step_router
 from app.ports.event_publisher import EventPublisher
 from app.ports.plan_repository import PlanRepository
 from app.ports.step_repository import StepRepository
-from app.services import PlanService, StepExecutionScheduler, StepService
+from app.services import PlanExecutionScheduler, PlanService, StepService
 from config.settings import settings
 
 OPENAPI_TAGS = [
@@ -61,8 +61,8 @@ def create_app(
     )
     application.state.plan_service = PlanService(plan_repo)
     application.state.step_service = StepService(step_repo)
-    application.state.step_execution_scheduler = (
-        StepExecutionScheduler(event_publisher) if event_publisher is not None else None
+    application.state.plan_execution_scheduler = (
+        PlanExecutionScheduler(event_publisher) if event_publisher is not None else None
     )
     application.include_router(health_router)
     application.include_router(plan_router)

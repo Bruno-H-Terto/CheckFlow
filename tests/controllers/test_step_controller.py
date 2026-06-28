@@ -96,36 +96,5 @@ def test_step_crud_as_semantic_block_of_plan(client: TestClient) -> None:
     assert request(client, "GET", "/plans/1/steps/1").status_code == 404
 
 
-def test_schedules_existing_step_execution(
-    client: TestClient,
-    publisher: SpyEventPublisher,
-) -> None:
-    request(client, "POST", "/plans", {"name": "Order flow"})
-    request(client, "POST", "/plans/1/steps", step_payload())
-
-    response = request(client, "POST", "/plans/1/steps/1/executions")
-
-    assert response.status_code == 202
-    assert response.json()["step_id"] == 1
-    assert response.json()["execution_id"]
-    assert publisher.messages[0][0:2] == (
-        "checkflow.execution.events",
-        response.json()["execution_id"],
-    )
-
-
-def test_rejects_unknown_plan_and_step(client: TestClient) -> None:
+def test_rejects_unknown_plan(client: TestClient) -> None:
     assert request(client, "POST", "/plans/99/steps", step_payload()).status_code == 404
-    assert request(client, "POST", "/steps/99/executions").status_code == 404
-
-
-def test_returns_unavailable_without_event_publisher() -> None:
-    step_repository = InMemoryStepRepository()
-    application = create_app(
-        InMemoryPlanRepository(),
-        step_repository=step_repository,
-    )
-    with TestClient(application) as client:
-        response = request(client, "POST", "/plans/1/steps/42/executions")
-
-    assert response.status_code == 503

@@ -10,26 +10,30 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from adapters.kafka import KafkaEventConsumer, KafkaEventPublisher
 from config.settings import settings
 from domain.entities.step import JsonValue
-from domain.events import ExecutionControl, StepExecutionControlRequested
+from domain.events import ExecutionControl, PlanExecutionControlRequested
 
 
 class ConnectionManager:
     def __init__(self) -> None:
-        self._connections: set[WebSocket] = set()
+        self._connections: dict[WebSocket, int] = {}
         self._loop: asyncio.AbstractEventLoop | None = None
 
-    async def connect(self, websocket: WebSocket) -> None:
+    async def connect(self, websocket: WebSocket, plan_id: int) -> None:
         await websocket.accept()
 
-        self._connections.add(websocket)
+        self._connections[websocket] = plan_id
         self._loop = asyncio.get_running_loop()
 
     def disconnect(self, websocket: WebSocket) -> None:
-        self._connections.discard(websocket)
+        self._connections.pop(websocket, None)
 
     async def broadcast(self, payload: dict[str, JsonValue]) -> None:
-        for connection in tuple(self._connections):
-            await connection.send_json(payload)
+        plan_id = payload.get("plan_id")
+        if not isinstance(plan_id, int):
+            return
+        for connection, subscribed_plan_id in tuple(self._connections.items()):
+            if subscribed_plan_id == plan_id:
+                await connection.send_json(payload)
 
     def broadcast_from_consumer(self, payload: dict[str, JsonValue]) -> None:
         if self._loop is not None:
@@ -60,9 +64,9 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
 app = FastAPI(title="Checkflow Realtime", lifespan=lifespan)
 
 
-@app.websocket("/ws/executions")
-async def execution_events(websocket: WebSocket) -> None:
-    await manager.connect(websocket)
+@app.websocket("/ws/plans/{plan_id}/executions")
+async def execution_events(websocket: WebSocket, plan_id: int) -> None:
+    await manager.connect(websocket, plan_id)
 
     try:
         while True:
@@ -70,9 +74,9 @@ async def execution_events(websocket: WebSocket) -> None:
             command = ExecutionControl(message["command"])
 
             if command:
-                event = StepExecutionControlRequested(
+                event = PlanExecutionControlRequested(
                     execution_id=str(message["execution_id"]),
-                    step_id=int(message["step_id"]),
+                    plan_id=plan_id,
                     command=command,
                 )
 

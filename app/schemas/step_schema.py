@@ -89,15 +89,3 @@ class StepResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     active: bool
-
-
-class StepExecutionAccepted(BaseModel):
-    event_id: str
-    event_type: str
-    step_id: int
-    execution_id: str
-    occurred_at: datetime
-
-
-class StepExecutionRequest(BaseModel):
-    scheduled_for: datetime | None = None
