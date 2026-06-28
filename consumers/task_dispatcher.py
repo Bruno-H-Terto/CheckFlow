@@ -77,7 +77,11 @@ def handle(payload: dict[str, JsonValue]) -> None:
         )
     elif event_type == "plan.execution.restart-requested.v1":
         restarted = PlanExecutionRequested(plan_id=plan_id)
-        execution_repository.create(PlanExecution(id=restarted.execution_id, plan_id=plan_id, retry_of=execution_id))
+        execution_repository.create(
+            PlanExecution(
+                id=restarted.execution_id, plan_id=plan_id, retry_of=execution_id
+            )
+        )
         publisher.publish(
             "checkflow.execution-events",
             restarted.execution_id,

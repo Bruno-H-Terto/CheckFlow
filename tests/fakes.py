@@ -1,4 +1,3 @@
-
 from dataclasses import replace
 
 from domain.entities.flow_validator import Plan
@@ -43,7 +42,7 @@ class InMemoryStepRepository:
         saved = step.with_id(self._next_id)
         self._steps.setdefault(plan_id, {})[self._next_id] = saved
         self._next_id += 1
-        
+
         return saved
 
     def get(self, plan_id: int, step_id: int) -> Step | None:
@@ -58,7 +57,6 @@ class InMemoryStepRepository:
             (step for step in response if step.plan_id == plan_id),
             key=lambda step: step.sequence,
         )
-
 
     def update(self, plan_id: int, step: Step) -> Step:
         if step.id is None:
@@ -107,22 +105,52 @@ class InMemoryExecutionRepository:
     def list_by_plan(self, plan_id: int) -> list[PlanExecution]:
         return [item for item in self.executions.values() if item.plan_id == plan_id]
 
-    def set_plan_status(self, execution_id: str, status: ExecutionStatus, error: str | None = None) -> None:
+    def set_plan_status(
+        self, execution_id: str, status: ExecutionStatus, error: str | None = None
+    ) -> None:
         current = self.executions[execution_id]
         self.executions[execution_id] = replace(current, status=status, error=error)
 
-    def merge_variables(self, execution_id: str, variables: dict[str, JsonValue]) -> None:
+    def merge_variables(
+        self, execution_id: str, variables: dict[str, JsonValue]
+    ) -> None:
         current = self.executions[execution_id]
-        self.executions[execution_id] = replace(current, variables={**current.variables, **variables})
+        self.executions[execution_id] = replace(
+            current, variables={**current.variables, **variables}
+        )
 
     def start_step(self, execution_id: str, step_id: int) -> None:
         items = self.step_executions.setdefault(execution_id, [])
-        items.append(StepExecution(id=len(items) + 1, execution_id=execution_id, step_id=step_id, status=ExecutionStatus.RUNNING))
+        items.append(
+            StepExecution(
+                id=len(items) + 1,
+                execution_id=execution_id,
+                step_id=step_id,
+                status=ExecutionStatus.RUNNING,
+            )
+        )
 
-    def finish_step(self, execution_id: str, step_id: int, status: ExecutionStatus, *, status_code: int | None = None, latency_ms: float | None = None, assertions: list[dict[str, JsonValue]] | None = None, error: str | None = None) -> None:
+    def finish_step(
+        self,
+        execution_id: str,
+        step_id: int,
+        status: ExecutionStatus,
+        *,
+        status_code: int | None = None,
+        latency_ms: float | None = None,
+        assertions: list[dict[str, JsonValue]] | None = None,
+        error: str | None = None,
+    ) -> None:
         items = self.step_executions[execution_id]
         current = items[-1]
-        items[-1] = replace(current, status=status, status_code=status_code, latency_ms=latency_ms, assertions=assertions or [], error=error)
+        items[-1] = replace(
+            current,
+            status=status,
+            status_code=status_code,
+            latency_ms=latency_ms,
+            assertions=assertions or [],
+            error=error,
+        )
 
     def list_steps(self, execution_id: str) -> list[StepExecution]:
         return self.step_executions.get(execution_id, [])

@@ -44,7 +44,9 @@ class StepModel(Base):
     assertions: Mapped[list[dict[str, JsonValue]]] = mapped_column(
         JSONB, nullable=False
     )
-    extracts: Mapped[dict[str, str]] = mapped_column(JSONB, nullable=False, default=dict)
+    extracts: Mapped[dict[str, str]] = mapped_column(
+        JSONB, nullable=False, default=dict
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False
     )
@@ -70,16 +72,15 @@ class PostgresStepRepository:
 
     def add(self, plan_id: int, step: Step) -> Step:
         statement = select(PlanModel).where(
-            PlanModel.id == plan_id,
-            PlanModel.deleted_at.is_(None)
+            PlanModel.id == plan_id, PlanModel.deleted_at.is_(None)
         )
-        
+
         model = self._to_model(step)
         with Session(self._engine) as session:
             plan = session.scalar(statement)
             if plan is None:
                 raise ValueError(f"Not found plan with id {plan_id}")
-        
+
             session.add(model)
             session.commit()
             session.refresh(model)
@@ -174,7 +175,10 @@ class PostgresStepRepository:
                 by_id[step_id].sequence = sequence
                 by_id[step_id].updated_at = datetime.now(UTC)
             session.commit()
-            return [self._to_entity(model) for model in sorted(models, key=lambda item: item.sequence)]
+            return [
+                self._to_entity(model)
+                for model in sorted(models, key=lambda item: item.sequence)
+            ]
 
     @classmethod
     def _to_model(cls, step: Step) -> StepModel:

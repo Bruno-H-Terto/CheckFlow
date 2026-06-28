@@ -32,7 +32,9 @@ class PlanExecutionOrchestrator:
         steps = self._active_steps(plan_id)
         if not steps:
             if self._executions is not None:
-                self._executions.set_plan_status(execution_id, ExecutionStatus.COMPLETED)
+                self._executions.set_plan_status(
+                    execution_id, ExecutionStatus.COMPLETED
+                )
             self._notify("completed", plan_id, execution_id, {"total_steps": 0})
             return
         self._notify_progress("started", plan_id, execution_id, steps[0], 0, len(steps))
@@ -58,7 +60,9 @@ class PlanExecutionOrchestrator:
         next_position = position + 1
         if next_position >= len(steps):
             if self._executions is not None:
-                self._executions.set_plan_status(execution_id, ExecutionStatus.COMPLETED)
+                self._executions.set_plan_status(
+                    execution_id, ExecutionStatus.COMPLETED
+                )
             self._notify(
                 "completed",
                 plan_id,
@@ -85,7 +89,9 @@ class PlanExecutionOrchestrator:
         error: str,
     ) -> None:
         if self._executions is not None:
-            self._executions.set_plan_status(execution_id, ExecutionStatus.FAILED, error)
+            self._executions.set_plan_status(
+                execution_id, ExecutionStatus.FAILED, error
+            )
         self._notify(
             "failed",
             plan_id,

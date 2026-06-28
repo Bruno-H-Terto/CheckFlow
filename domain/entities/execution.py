@@ -34,7 +34,9 @@ class StepExecution:
     status: ExecutionStatus
     status_code: int | None = None
     latency_ms: float | None = None
-    assertions: list[dict[str, JsonValue]] = field(default_factory=list[dict[str, JsonValue]])
+    assertions: list[dict[str, JsonValue]] = field(
+        default_factory=list[dict[str, JsonValue]]
+    )
     error: str | None = None
     started_at: datetime | None = None
     finished_at: datetime | None = None

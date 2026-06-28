@@ -110,6 +110,16 @@ def test_assigns_sequence_and_reorders_all_steps(client: TestClient) -> None:
     second = request(client, "POST", "/plans/1/steps", second_payload).json()
     assert [first["sequence"], second["sequence"]] == [1, 2]
 
-    reordered = request(client, "PATCH", "/plans/1/steps/reorder", {"steps": [{"step_id": first["id"], "sequence": 2}, {"step_id": second["id"], "sequence": 1}]})
+    reordered = request(
+        client,
+        "PATCH",
+        "/plans/1/steps/reorder",
+        {
+            "steps": [
+                {"step_id": first["id"], "sequence": 2},
+                {"step_id": second["id"], "sequence": 1},
+            ]
+        },
+    )
     assert reordered.status_code == 200
     assert [item["name"] for item in reordered.json()] == ["Second", "First"]

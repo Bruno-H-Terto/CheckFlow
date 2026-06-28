@@ -7,7 +7,11 @@ from httpx import Response
 
 from app.main import create_app
 from domain.entities.step import JsonValue
-from tests.fakes import InMemoryExecutionRepository, InMemoryPlanRepository, InMemoryStepRepository
+from tests.fakes import (
+    InMemoryExecutionRepository,
+    InMemoryPlanRepository,
+    InMemoryStepRepository,
+)
 from domain.entities.execution import ExecutionStatus
 
 
@@ -35,7 +39,9 @@ def executions() -> InMemoryExecutionRepository:
 
 
 @pytest.fixture
-def client(publisher: SpyEventPublisher, executions: InMemoryExecutionRepository) -> Iterator[TestClient]:
+def client(
+    publisher: SpyEventPublisher, executions: InMemoryExecutionRepository
+) -> Iterator[TestClient]:
     application = create_app(
         InMemoryPlanRepository(),
         publisher,
@@ -120,9 +126,15 @@ def test_schedules_the_whole_plan(
     )
 
 
-def test_execution_history_cancel_and_retry(client: TestClient, publisher: SpyEventPublisher, executions: InMemoryExecutionRepository) -> None:
+def test_execution_history_cancel_and_retry(
+    client: TestClient,
+    publisher: SpyEventPublisher,
+    executions: InMemoryExecutionRepository,
+) -> None:
     request(client, "POST", "/plans", {"name": "Order flow"})
-    scheduled = request(client, "POST", "/plans/1/executions", {"variables": {"tenant": "acme"}}).json()
+    scheduled = request(
+        client, "POST", "/plans/1/executions", {"variables": {"tenant": "acme"}}
+    ).json()
     execution_id = scheduled["execution_id"]
 
     history = request(client, "GET", "/plans/1/executions")

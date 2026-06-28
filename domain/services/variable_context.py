@@ -12,15 +12,23 @@ def render_step(step: Step, variables: dict[str, JsonValue]) -> Step:
         action=HttpAction(
             method=step.action.method,
             url=str(_render(step.action.url, variables)),
-            headers={key: str(_render(value, variables)) for key, value in step.action.headers.items()},
+            headers={
+                key: str(_render(value, variables))
+                for key, value in step.action.headers.items()
+            },
             body=_render(step.action.body, variables),
             timeout_seconds=step.action.timeout_seconds,
         ),
-        assertions=tuple(replace(assertion, expected=_render(assertion.expected, variables)) for assertion in step.assertions),
+        assertions=tuple(
+            replace(assertion, expected=_render(assertion.expected, variables))
+            for assertion in step.assertions
+        ),
     )
 
 
-def extract_variables(extracts: dict[str, str], result: ActionResult) -> dict[str, JsonValue]:
+def extract_variables(
+    extracts: dict[str, str], result: ActionResult
+) -> dict[str, JsonValue]:
     return {name: _extract(source, result) for name, source in extracts.items()}
 
 

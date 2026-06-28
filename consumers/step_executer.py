@@ -43,9 +43,15 @@ def execute_step(
         execution = executions.get(execution_id)
         if execution is None:
             raise ValueError(f"Execution {execution_id} was not found")
-        result = StepExecutor(HttpxActionRunner()).execute(render_step(step, execution.variables))
+        result = StepExecutor(HttpxActionRunner()).execute(
+            render_step(step, execution.variables)
+        )
         assertion_payloads: list[dict[str, JsonValue]] = [
-            {"target": item.assertion.target.value, "actual": item.actual, "passed": item.passed}
+            {
+                "target": item.assertion.target.value,
+                "actual": item.actual,
+                "passed": item.passed,
+            }
             for item in result.assertions
         ]
         completed: dict[str, JsonValue] = {
@@ -58,15 +64,32 @@ def execute_step(
             extracted = extract_variables(step.extracts, result.action_result)
             if extracted:
                 executions.merge_variables(execution_id, extracted)
-            executions.finish_step(execution_id, step_id, ExecutionStatus.COMPLETED, status_code=result.action_result.status_code, latency_ms=result.action_result.latency_ms, assertions=assertion_payloads)
+            executions.finish_step(
+                execution_id,
+                step_id,
+                ExecutionStatus.COMPLETED,
+                status_code=result.action_result.status_code,
+                latency_ms=result.action_result.latency_ms,
+                assertions=assertion_payloads,
+            )
             notify("completed", completed)
         else:
-            executions.finish_step(execution_id, step_id, ExecutionStatus.FAILED, status_code=result.action_result.status_code, latency_ms=result.action_result.latency_ms, assertions=assertion_payloads, error="Step assertions failed")
+            executions.finish_step(
+                execution_id,
+                step_id,
+                ExecutionStatus.FAILED,
+                status_code=result.action_result.status_code,
+                latency_ms=result.action_result.latency_ms,
+                assertions=assertion_payloads,
+                error="Step assertions failed",
+            )
             notify("failed", {**completed, "error": "Step assertions failed"})
         return completed
     except Exception as error:
         try:
-            executions.finish_step(execution_id, step_id, ExecutionStatus.FAILED, error=str(error))
+            executions.finish_step(
+                execution_id, step_id, ExecutionStatus.FAILED, error=str(error)
+            )
         except ValueError:
             pass
         notify("failed", {"error": str(error)})

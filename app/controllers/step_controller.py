@@ -5,7 +5,6 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from app.schemas.step_schema import StepCreate, StepReorder, StepResponse, StepUpdate
 from app.services import PlanNotFoundError, PlanService, StepNotFoundError, StepService
 
-
 router = APIRouter(tags=["steps"])
 
 
@@ -61,8 +60,7 @@ def list_steps(
     except PlanNotFoundError as error:
         raise _not_found(error) from error
     return [
-        StepResponse.model_validate(step)
-        for step in step_service.list_by_plan(plan_id)
+        StepResponse.model_validate(step) for step in step_service.list_by_plan(plan_id)
     ]
 
 
@@ -82,7 +80,10 @@ def reorder_steps(
         positions = {item.step_id: item.sequence for item in payload.steps}
         if len(positions) != len(payload.steps):
             raise ValueError("Step ids must be unique")
-        return [StepResponse.model_validate(item) for item in step_service.reorder(plan_id, positions)]
+        return [
+            StepResponse.model_validate(item)
+            for item in step_service.reorder(plan_id, positions)
+        ]
     except PlanNotFoundError as error:
         raise _not_found(error) from error
     except ValueError as error:

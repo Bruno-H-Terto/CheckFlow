@@ -18,14 +18,16 @@ class StepService:
     def create(self, step: Step) -> Step:
         if step.sequence == 0:
             current = self._repository.list_by_plan(step.plan_id)
-            step = replace(step, sequence=max((item.sequence for item in current), default=0) + 1)
+            step = replace(
+                step, sequence=max((item.sequence for item in current), default=0) + 1
+            )
         return self._repository.add(step.plan_id, step)
 
     def get(self, plan_id: int, step_id: int) -> Step:
         step = self._repository.get(plan_id, step_id)
         if step is None:
             raise StepNotFoundError(step_id)
-        
+
         return step
 
     def list_by_plan(self, plan_id: int) -> list[Step]:

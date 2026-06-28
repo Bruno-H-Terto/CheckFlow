@@ -3,7 +3,11 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from adapters.postgres import PostgresExecutionRepository, PostgresPlanRepository, PostgresStepRepository
+from adapters.postgres import (
+    PostgresExecutionRepository,
+    PostgresPlanRepository,
+    PostgresStepRepository,
+)
 from adapters.kafka import KafkaEventPublisher
 from app.controllers.health_controller import router as health_router
 from app.controllers.plan_controller import router as plan_router
@@ -70,7 +74,9 @@ def create_app(
     application.state.step_service = StepService(step_repo)
     application.state.execution_repository = execution_repo
     application.state.plan_execution_scheduler = (
-        PlanExecutionScheduler(event_publisher, execution_repo) if event_publisher is not None else None
+        PlanExecutionScheduler(event_publisher, execution_repo)
+        if event_publisher is not None
+        else None
     )
     application.include_router(health_router)
     application.include_router(plan_router)
