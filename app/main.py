@@ -67,6 +67,7 @@ def create_app(
     application.include_router(health_router)
     application.include_router(plan_router)
     application.include_router(step_router)
+
     return application
 
 

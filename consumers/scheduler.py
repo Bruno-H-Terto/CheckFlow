@@ -16,14 +16,18 @@ scheduler = BackgroundScheduler(timezone="UTC")
 def handle(payload: dict[str, JsonValue]) -> None:
     if payload.get("event_type") != "step.execution.scheduled.v1":
         return
+
     run_at = payload.get("scheduled_for")
     step_id = payload.get("step_id")
     execution_id = payload.get("execution_id")
+
     if not isinstance(run_at, str) or not isinstance(step_id, int):
         raise ValueError("Scheduled event requires step_id and scheduled_for")
     if not isinstance(execution_id, str):
         raise ValueError("Scheduled event requires execution_id")
+
     event = StepExecutionRequested(step_id=step_id, execution_id=execution_id)
+
     scheduler.add_job(
         publisher.publish,
         trigger="date",

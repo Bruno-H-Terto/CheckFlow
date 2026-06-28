@@ -27,6 +27,7 @@ def _not_found(error: PlanNotFoundError) -> HTTPException:
 )
 def create_plan(payload: PlanCreate, service: PlanServiceDependency) -> PlanResponse:
     plan = service.create(payload.name, payload.description)
+
     return PlanResponse.model_validate(plan)
 
 
@@ -56,6 +57,7 @@ def update_plan(
             description=payload.description,
             active=payload.active,
         )
+
         return PlanResponse.model_validate(plan)
     except PlanNotFoundError as error:
         raise _not_found(error) from error
@@ -71,4 +73,5 @@ def delete_plan(plan_id: int, service: PlanServiceDependency) -> Response:
         service.delete(plan_id)
     except PlanNotFoundError as error:
         raise _not_found(error) from error
+
     return Response(status_code=status.HTTP_204_NO_CONTENT)

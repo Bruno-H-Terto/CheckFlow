@@ -17,6 +17,7 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from adapters.postgres.plan_repository import Base
+from adapters.postgres.plan_repository import PlanModel
 from domain.entities.step import (
     AssertionOperator,
     AssertionTarget,
@@ -72,15 +73,18 @@ class PostgresStepRepository:
             session.add(model)
             session.commit()
             session.refresh(model)
+
             return self._to_entity(model)
 
-    def get(self, step_id: int) -> Step | None:
+    def get(self, plan_id: int, step_id: int) -> Step | None:
         statement = select(StepModel).where(
+            PlanModel.id == plan_id,
             StepModel.id == step_id,
             StepModel.deleted_at.is_(None),
         )
         with Session(self._engine) as session:
             model = session.scalar(statement)
+
             return None if model is None else self._to_entity(model)
 
     def list_by_plan(self, plan_id: int) -> list[Step]:
@@ -95,10 +99,12 @@ class PostgresStepRepository:
     def update(self, step: Step) -> Step:
         if step.id is None:
             raise ValueError("Cannot update a step without an id")
+
         with Session(self._engine) as session:
             model = session.get(StepModel, step.id)
             if model is None or model.deleted_at is not None:
                 raise ValueError(f"Step {step.id} does not exist")
+
             model.sequence = step.sequence
             model.name = step.name
             model.description = step.description
@@ -108,16 +114,25 @@ class PostgresStepRepository:
             model.active = step.active
             session.commit()
             session.refresh(model)
+
             return self._to_entity(model)
 
-    def delete(self, step_id: int) -> bool:
+    def delete(self, plan_id: int, step_id: int) -> bool:
+        statement = select(StepModel).where(
+            PlanModel.id == plan_id,
+            StepModel.id == step_id,
+            StepModel.deleted_at.is_(None),
+        )
         with Session(self._engine) as session:
-            model = session.get(StepModel, step_id)
-            if model is None or model.deleted_at is not None:
+            step = session.scalar(statement)
+
+            if step is None or step.deleted_at is not None:
                 return False
-            model.deleted_at = datetime.now(UTC)
-            model.active = False
+
+            step.deleted_at = datetime.now(UTC)
+            step.active = False
             session.commit()
+
             return True
 
     @classmethod
@@ -138,6 +153,7 @@ class PostgresStepRepository:
     @staticmethod
     def _action_payload(action: HttpAction) -> dict[str, JsonValue]:
         headers: dict[str, JsonValue] = dict(action.headers)
+
         return {
             "type": "http",
             "method": action.method.value,
@@ -165,6 +181,7 @@ class PostgresStepRepository:
     def _to_entity(model: StepModel) -> Step:
         action = model.action
         assertions = model.assertions
+
         return Step(
             id=model.id,
             plan_id=model.plan_id,

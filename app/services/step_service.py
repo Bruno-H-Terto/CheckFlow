@@ -18,8 +18,8 @@ class StepService:
     def create(self, step: Step) -> Step:
         return self._repository.add(step)
 
-    def get(self, step_id: int) -> Step:
-        step = self._repository.get(step_id)
+    def get(self, plan_id: int, step_id: int) -> Step:
+        step = self._repository.get(plan_id, step_id)
         if step is None:
             raise StepNotFoundError(step_id)
         return step
@@ -28,7 +28,10 @@ class StepService:
         return self._repository.list_by_plan(plan_id)
 
     def update(self, step_id: int, replacement: Step) -> Step:
-        current = self.get(step_id)
+        current = self.get(replacement.plan_id, step_id)
+        if not current:
+            raise StepNotFoundError(step_id)
+
         updated = replace(
             replacement,
             id=current.id,
@@ -37,8 +40,9 @@ class StepService:
             updated_at=datetime.now(UTC),
             deleted_at=current.deleted_at,
         )
+
         return self._repository.update(updated)
 
-    def delete(self, step_id: int) -> None:
-        if not self._repository.delete(step_id):
+    def delete(self, plan_id: int, step_id: int) -> None:
+        if not self._repository.delete(plan_id, step_id):
             raise StepNotFoundError(step_id)

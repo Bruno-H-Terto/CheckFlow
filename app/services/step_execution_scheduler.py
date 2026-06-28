@@ -7,7 +7,7 @@ type ScheduledExecution = StepExecutionRequested | StepExecutionScheduled
 
 
 class StepExecutionScheduler:
-    topic = "checkflow.execution-events"
+    topic = "checkflow.execution.events"
 
     def __init__(self, publisher: EventPublisher) -> None:
         self._publisher = publisher

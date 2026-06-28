@@ -20,6 +20,7 @@ class ConnectionManager:
 
     async def connect(self, websocket: WebSocket) -> None:
         await websocket.accept()
+
         self._connections.add(websocket)
         self._loop = asyncio.get_running_loop()
 
@@ -50,7 +51,9 @@ def consume_events() -> None:
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
     Thread(target=consume_events, daemon=True).start()
+
     yield
+
     publisher.close()
 
 
@@ -60,19 +63,24 @@ app = FastAPI(title="Checkflow Realtime", lifespan=lifespan)
 @app.websocket("/ws/executions")
 async def execution_events(websocket: WebSocket) -> None:
     await manager.connect(websocket)
+
     try:
         while True:
             message = await websocket.receive_json()
             command = ExecutionControl(message["command"])
-            event = StepExecutionControlRequested(
-                execution_id=str(message["execution_id"]),
-                step_id=int(message["step_id"]),
-                command=command,
-            )
-            publisher.publish(
-                "checkflow.execution-events",
-                event.execution_id,
-                event.to_payload(),
-            )
+
+            if command:
+                event = StepExecutionControlRequested(
+                    execution_id=str(message["execution_id"]),
+                    step_id=int(message["step_id"]),
+                    command=command,
+                )
+
+                publisher.publish(
+                    "checkflow.execution-events",
+                    event.execution_id,
+                    event.to_payload(),
+                )
+
     except WebSocketDisconnect:
         manager.disconnect(websocket)

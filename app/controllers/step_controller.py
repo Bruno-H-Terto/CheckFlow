@@ -38,6 +38,7 @@ def get_step_execution_scheduler(request: Request) -> StepExecutionScheduler:
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Step execution publisher is not configured",
         )
+
     return scheduler
 
 
@@ -68,6 +69,7 @@ def create_step(
     try:
         plan_service.get(plan_id)
         step = step_service.create(payload.to_entity(plan_id))
+
         return StepResponse.model_validate(step)
     except PlanNotFoundError as error:
         raise _not_found(error) from error
@@ -87,48 +89,62 @@ def list_steps(
         plan_service.get(plan_id)
     except PlanNotFoundError as error:
         raise _not_found(error) from error
+
     return [
         StepResponse.model_validate(step) for step in step_service.list_by_plan(plan_id)
     ]
 
 
-@router.get("/steps/{step_id}", response_model=StepResponse, summary="Consultar step")
-def get_step(step_id: int, service: StepServiceDependency) -> StepResponse:
+@router.get(
+    "/plans/{plan_id}/steps/{step_id}",
+    response_model=StepResponse,
+    summary="Consultar step",
+)
+def get_step(
+    plan_id: int, step_id: int, service: StepServiceDependency
+) -> StepResponse:
     try:
-        return StepResponse.model_validate(service.get(step_id))
+        return StepResponse.model_validate(service.get(plan_id, step_id))
     except StepNotFoundError as error:
         raise _not_found(error) from error
 
 
-@router.put("/steps/{step_id}", response_model=StepResponse, summary="Atualizar step")
+@router.put(
+    "/plans/{plan_id}/steps/{step_id}",
+    response_model=StepResponse,
+    summary="Atualizar step",
+)
 def update_step(
+    plan_id: int,
     step_id: int,
     payload: StepUpdate,
     service: StepServiceDependency,
 ) -> StepResponse:
     try:
-        current = service.get(step_id)
+        current = service.get(plan_id, step_id)
         updated = service.update(step_id, payload.to_entity(current.plan_id))
+
         return StepResponse.model_validate(updated)
     except StepNotFoundError as error:
         raise _not_found(error) from error
 
 
 @router.delete(
-    "/steps/{step_id}",
+    "/plans/{plan_id}/steps/{step_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Remover step",
 )
-def delete_step(step_id: int, service: StepServiceDependency) -> Response:
+def delete_step(plan_id: int, step_id: int, service: StepServiceDependency) -> Response:
     try:
-        service.delete(step_id)
+        service.delete(plan_id, step_id)
     except StepNotFoundError as error:
         raise _not_found(error) from error
+
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.post(
-    "/steps/{step_id}/executions",
+    "/plans/{plan_id}/steps/{step_id}/executions",
     response_model=StepExecutionAccepted,
     status_code=status.HTTP_202_ACCEPTED,
     summary="Executar ou agendar step",
@@ -138,17 +154,19 @@ def delete_step(step_id: int, service: StepServiceDependency) -> Response:
     ),
 )
 def schedule_step_execution(
+    plan_id: int,
     step_id: int,
     scheduler: StepSchedulerDependency,
     step_service: StepServiceDependency,
     payload: StepExecutionRequest | None = None,
 ) -> StepExecutionAccepted:
     try:
-        step_service.get(step_id)
+        step_service.get(plan_id, step_id)
         request = payload or StepExecutionRequest()
         event = scheduler.schedule(step_id, request.scheduled_for)
     except StepNotFoundError as error:
         raise _not_found(error) from error
+
     return StepExecutionAccepted(
         event_id=event.event_id,
         event_type=event.event_type,
