@@ -14,6 +14,12 @@ from app.ports.step_repository import StepRepository
 from app.services import PlanService, StepExecutionScheduler, StepService
 from config.settings import settings
 
+OPENAPI_TAGS = [
+    {"name": "health", "description": "Disponibilidade da API."},
+    {"name": "plans", "description": "Definição dos planos de validação."},
+    {"name": "steps", "description": "Blocos executáveis e seus agendamentos."},
+]
+
 
 def create_app(
     plan_repository: PlanRepository | None = None,
@@ -39,7 +45,20 @@ def create_app(
             if isinstance(event_publisher, KafkaEventPublisher):
                 event_publisher.close()
 
-    application = FastAPI(title="Checkflow API", lifespan=lifespan)
+    application = FastAPI(
+        title="Checkflow API",
+        summary="Validador de fluxos para sistemas distribuídos",
+        description=(
+            "Crie planos e steps, dispare execuções em background e acompanhe "
+            "os eventos pelo serviço realtime."
+        ),
+        version="0.1.0",
+        docs_url="/docs",
+        redoc_url="/redoc",
+        openapi_url="/openapi.json",
+        openapi_tags=OPENAPI_TAGS,
+        lifespan=lifespan,
+    )
     application.state.plan_service = PlanService(plan_repo)
     application.state.step_service = StepService(step_repo)
     application.state.step_execution_scheduler = (
@@ -51,6 +70,4 @@ def create_app(
     return application
 
 
-app = create_app(
-    event_publisher=KafkaEventPublisher(settings.KAFKA_BOOTSTRAP_SERVERS)
-)
+app = create_app(event_publisher=KafkaEventPublisher(settings.KAFKA_BOOTSTRAP_SERVERS))

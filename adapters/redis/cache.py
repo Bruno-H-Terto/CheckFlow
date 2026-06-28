@@ -13,8 +13,11 @@ class RedisJsonCache:
         default_ttl: int = 3_600,
         client: Redis | None = None,
     ) -> None:
-        self._client = client or Redis.from_url(  # pyright: ignore[reportUnknownMemberType]
-            redis_url, decode_responses=True
+        self._client = (
+            client
+            or Redis.from_url(  # pyright: ignore[reportUnknownMemberType]
+                redis_url, decode_responses=True
+            )
         )
         self._default_ttl = default_ttl
 

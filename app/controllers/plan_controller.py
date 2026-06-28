@@ -19,18 +19,23 @@ def _not_found(error: PlanNotFoundError) -> HTTPException:
     return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error))
 
 
-@router.post("", response_model=PlanResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=PlanResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Criar plano",
+)
 def create_plan(payload: PlanCreate, service: PlanServiceDependency) -> PlanResponse:
     plan = service.create(payload.name, payload.description)
     return PlanResponse.model_validate(plan)
 
 
-@router.get("", response_model=list[PlanResponse])
+@router.get("", response_model=list[PlanResponse], summary="Listar planos")
 def list_plans(service: PlanServiceDependency) -> list[PlanResponse]:
     return [PlanResponse.model_validate(plan) for plan in service.list()]
 
 
-@router.get("/{plan_id}", response_model=PlanResponse)
+@router.get("/{plan_id}", response_model=PlanResponse, summary="Consultar plano")
 def get_plan(plan_id: int, service: PlanServiceDependency) -> PlanResponse:
     try:
         return PlanResponse.model_validate(service.get(plan_id))
@@ -38,7 +43,7 @@ def get_plan(plan_id: int, service: PlanServiceDependency) -> PlanResponse:
         raise _not_found(error) from error
 
 
-@router.put("/{plan_id}", response_model=PlanResponse)
+@router.put("/{plan_id}", response_model=PlanResponse, summary="Atualizar plano")
 def update_plan(
     plan_id: int,
     payload: PlanUpdate,
@@ -56,7 +61,11 @@ def update_plan(
         raise _not_found(error) from error
 
 
-@router.delete("/{plan_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{plan_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Remover plano",
+)
 def delete_plan(plan_id: int, service: PlanServiceDependency) -> Response:
     try:
         service.delete(plan_id)

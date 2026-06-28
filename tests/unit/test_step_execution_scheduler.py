@@ -1,5 +1,6 @@
 from domain.entities.step import JsonValue
 from app.services import StepExecutionScheduler
+from datetime import UTC, datetime, timedelta
 
 
 class SpyEventPublisher:
@@ -39,4 +40,3 @@ def test_publishes_future_execution_as_scheduled_event() -> None:
 
     assert event.event_type == "step.execution.scheduled.v1"
     assert publisher.messages[0][0] == "checkflow.execution-events"
-from datetime import UTC, datetime, timedelta

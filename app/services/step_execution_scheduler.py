@@ -3,7 +3,6 @@ from datetime import datetime
 from app.ports.event_publisher import EventPublisher
 from domain.events import StepExecutionRequested, StepExecutionScheduled
 
-
 type ScheduledExecution = StepExecutionRequested | StepExecutionScheduled
 
 

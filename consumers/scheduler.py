@@ -9,7 +9,6 @@ from config.settings import settings
 from domain.entities.step import JsonValue
 from domain.events import StepExecutionRequested
 
-
 publisher = KafkaEventPublisher(settings.KAFKA_BOOTSTRAP_SERVERS)
 scheduler = BackgroundScheduler(timezone="UTC")
 

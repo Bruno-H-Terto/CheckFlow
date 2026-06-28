@@ -4,7 +4,6 @@ from celery import Celery
 
 from config.settings import settings
 
-
 celery_app = Celery(
     "checkflow",
     broker=settings.CELERY_BROKER_URL,

@@ -57,6 +57,7 @@ def _not_found(error: StepNotFoundError | PlanNotFoundError) -> HTTPException:
     "/plans/{plan_id}/steps",
     response_model=StepResponse,
     status_code=status.HTTP_201_CREATED,
+    summary="Criar step no plano",
 )
 def create_step(
     plan_id: int,
@@ -72,7 +73,11 @@ def create_step(
         raise _not_found(error) from error
 
 
-@router.get("/plans/{plan_id}/steps", response_model=list[StepResponse])
+@router.get(
+    "/plans/{plan_id}/steps",
+    response_model=list[StepResponse],
+    summary="Listar steps do plano",
+)
 def list_steps(
     plan_id: int,
     step_service: StepServiceDependency,
@@ -87,7 +92,7 @@ def list_steps(
     ]
 
 
-@router.get("/steps/{step_id}", response_model=StepResponse)
+@router.get("/steps/{step_id}", response_model=StepResponse, summary="Consultar step")
 def get_step(step_id: int, service: StepServiceDependency) -> StepResponse:
     try:
         return StepResponse.model_validate(service.get(step_id))
@@ -95,7 +100,7 @@ def get_step(step_id: int, service: StepServiceDependency) -> StepResponse:
         raise _not_found(error) from error
 
 
-@router.put("/steps/{step_id}", response_model=StepResponse)
+@router.put("/steps/{step_id}", response_model=StepResponse, summary="Atualizar step")
 def update_step(
     step_id: int,
     payload: StepUpdate,
@@ -109,7 +114,11 @@ def update_step(
         raise _not_found(error) from error
 
 
-@router.delete("/steps/{step_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/steps/{step_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Remover step",
+)
 def delete_step(step_id: int, service: StepServiceDependency) -> Response:
     try:
         service.delete(step_id)
@@ -122,6 +131,11 @@ def delete_step(step_id: int, service: StepServiceDependency) -> Response:
     "/steps/{step_id}/executions",
     response_model=StepExecutionAccepted,
     status_code=status.HTTP_202_ACCEPTED,
+    summary="Executar ou agendar step",
+    description=(
+        "Publica um evento no Kafka. O dispatcher entrega a execução ao Celery; "
+        "informe `scheduled_for` para uma execução futura."
+    ),
 )
 def schedule_step_execution(
     step_id: int,
