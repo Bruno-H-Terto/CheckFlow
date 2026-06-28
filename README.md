@@ -1,8 +1,41 @@
 # Checkflow
 
-Backend para definição e execução de fluxos de validação em sistemas distribuídos.
-Um plano agrupa steps ordenados; cada step executa uma chamada HTTP e avalia seus
-asserts. As execuções são assíncronas e orientadas a eventos.
+Workflow engine voltado à validação de fluxos HTTP em sistemas distribuídos.
+Um plano define steps ordenados e, quando executado, gera uma `Execution` composta
+por várias `StepExecutions`. As execuções são assíncronas e orientadas a eventos.
+
+## Estado do projeto
+
+O backend do MVP está implementado e em desenvolvimento ativo.
+
+### Escopo do MVP
+
+- [x] CRUD de planos
+- [x] CRUD de steps associados a planos
+- [x] Sequence automática e reordenação
+- [x] Execução sequencial do plano
+- [x] Histórico e resultados das execuções
+- [x] Variáveis e extrações entre steps
+- [x] Agendamento e execução assíncrona
+- [x] Cancelamento e retry
+- [x] WebSocket em tempo real
+- [ ] Dashboard React
+
+### Modelo conceitual
+
+```text
+Plan
+  └── Execution
+        ├── StepExecution 1
+        ├── StepExecution 2
+        ├── StepExecution 3
+        └── Variables
+```
+
+- `Plan`: definição reutilizável do fluxo e de seus steps;
+- `Execution`: uma execução concreta de um plano;
+- `StepExecution`: resultado da execução de um step dentro de uma `Execution`;
+- `Variables`: contexto isolado compartilhado entre os steps da mesma execução.
 
 ## Arquitetura
 
@@ -83,6 +116,11 @@ GET    /plans/{plan_id}/steps/{step_id}
 PUT    /plans/{plan_id}/steps/{step_id}
 DELETE /plans/{plan_id}/steps/{step_id}
 PATCH  /plans/{plan_id}/steps/reorder
+```
+
+### Execuções
+
+```text
 POST   /plans/{plan_id}/executions
 GET    /plans/{plan_id}/executions
 GET    /plans/{plan_id}/executions/{execution_id}
@@ -131,11 +169,13 @@ Execução futura usa uma data ISO 8601 com timezone:
 {"scheduled_for": "2026-06-28T18:00:00-03:00"}
 ```
 
-### Variáveis entre steps
+### Variáveis entre StepExecutions
 
-Um step pode extrair valores da resposta e os próximos steps podem usar
-templates `{{variavel}}` na URL, headers, body e valores esperados dos asserts.
-As variáveis pertencem à execução do plano e são persistidas no PostgreSQL.
+Um step pode declarar valores a serem extraídos da resposta. Durante uma
+`Execution`, as `StepExecutions` seguintes podem usar
+templates `{{variavel}}` na URL, headers, body e valores esperados das assertions.
+As variáveis pertencem à `Execution`, não ao `Plan`, e são persistidas no
+PostgreSQL.
 
 Exemplo de login que captura um token:
 
@@ -179,8 +219,9 @@ iniciais ao iniciar uma execução:
 
 ## Realtime e controle
 
-Conecte ao WebSocket para acompanhar o plano inteiro. Os eventos informam
-`plan_id`, `execution_id`, step atual, quantidade concluída e total de steps.
+Conecte ao WebSocket para acompanhar uma `Execution` do plano inteiro. Os eventos
+informam `plan_id`, `execution_id`, step atual, quantidade concluída e total de
+steps.
 O próximo step só é enfileirado após `step.execution.completed.v1`; uma falha
 encerra a execução do plano.
 Para controlar uma execução, envie:
