@@ -4,8 +4,8 @@ from pathlib import Path
 import pytest
 
 from adapters.sqlite import SqliteInternalLogRepository
+from app.ports.internal_log_repository import InternalLogRepository
 from domain.entities.internal_log import InternalLog, LogLevel
-from domain.ports.internal_log_repository import InternalLogRepository
 
 
 @pytest.fixture

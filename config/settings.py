@@ -5,6 +5,9 @@ from typing import Literal
 class Settings(BaseSettings):
     ENV: Literal["test", "development", "production"] = "development"
     SQLITE_DATABASE_PATH: str = "./checkflow.db"
+    DATABASE_URL: str = (
+        "postgresql+psycopg://checkflow:checkflow@localhost:5432/checkflow"
+    )
 
     model_config = SettingsConfigDict(
         env_file=".env",
