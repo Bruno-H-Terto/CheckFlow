@@ -130,6 +130,14 @@ def test_postgres_step_crud_with_jsonb(
     assert step_repository.get(plan.id, first.id or 0) is None
     assert step_repository.delete(plan.id, first.id or 0) is False
 
+    replacement = step_repository.add(
+        plan.id, Step(plan.id, 1, "Recreate order", action, assertions)
+    )
+    assert [(step.id, step.sequence) for step in step_repository.list_by_plan(plan.id)] == [
+        (replacement.id, 1),
+        (second.id, 2),
+    ]
+
 
 def test_postgres_execution_history(
     repositories: tuple[

@@ -8,9 +8,10 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
-    UniqueConstraint,
+    Index,
     create_engine,
     select,
+    text,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.engine import Engine
@@ -31,7 +32,15 @@ from domain.entities.step import (
 
 class StepModel(Base):
     __tablename__ = "steps"
-    __table_args__ = (UniqueConstraint("plan_id", "sequence"),)
+    __table_args__ = (
+        Index(
+            "uq_steps_plan_id_sequence_active",
+            "plan_id",
+            "sequence",
+            unique=True,
+            postgresql_where=text("deleted_at IS NULL"),
+        ),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     plan_id: Mapped[int] = mapped_column(
