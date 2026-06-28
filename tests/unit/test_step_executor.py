@@ -1,6 +1,6 @@
 import pytest
 
-from app.schemas.check_point_schema import StepCreate
+from app.schemas.step_schema import StepCreate
 from domain.entities.step import (
     ActionResult,
     AssertionOperator,
@@ -27,7 +27,7 @@ def test_executes_action_and_evaluates_distributed_system_response() -> None:
     action = HttpAction(HttpMethod.POST, "https://orders.local/orders")
     step = Step(
         id=10,
-        checkpoint_id=2,
+        plan_id=2,
         sequence=1,
         name="Create order",
         action=action,
@@ -60,7 +60,7 @@ def test_executes_action_and_evaluates_distributed_system_response() -> None:
 
 def test_reports_failed_assertion_without_stopping_evaluation() -> None:
     step = Step(
-        checkpoint_id=2,
+        plan_id=2,
         sequence=1,
         name="Read order",
         action=HttpAction(HttpMethod.GET, "https://orders.local/orders/42"),
@@ -90,7 +90,7 @@ def test_validates_step_and_action_invariants() -> None:
 
     with pytest.raises(ValueError, match="at least one assertion"):
         Step(
-            checkpoint_id=1,
+            plan_id=1,
             sequence=1,
             name="Invalid",
             action=HttpAction(HttpMethod.GET, "https://orders.local"),
@@ -101,7 +101,6 @@ def test_validates_step_and_action_invariants() -> None:
 def test_builds_domain_step_from_api_payload() -> None:
     payload = StepCreate.model_validate(
         {
-            "checkpoint_id": 5,
             "sequence": 2,
             "name": "Query projection",
             "action": {
@@ -118,8 +117,8 @@ def test_builds_domain_step_from_api_payload() -> None:
         }
     )
 
-    step = payload.to_entity()
+    step = payload.to_entity(plan_id=5)
 
-    assert step.checkpoint_id == 5
+    assert step.plan_id == 5
     assert step.action.method == HttpMethod.GET
     assert step.assertions[0].path == "status"

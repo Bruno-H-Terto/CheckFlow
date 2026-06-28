@@ -1,4 +1,5 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
+from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Protocol
 
@@ -56,19 +57,26 @@ class StepAssertion:
 
 @dataclass(frozen=True, slots=True)
 class Step:
-    checkpoint_id: int
+    plan_id: int
     sequence: int
     name: str
     action: HttpAction
     assertions: tuple[StepAssertion, ...]
     id: int | None = None
     description: str | None = ""
+    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    updated_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    deleted_at: datetime | None = None
+    active: bool = True
 
     def __post_init__(self) -> None:
         if self.sequence < 1:
             raise ValueError("Step sequence must be greater than zero")
         if not self.assertions:
             raise ValueError("Step must define at least one assertion")
+
+    def with_id(self, step_id: int) -> "Step":
+        return replace(self, id=step_id)
 
 
 @dataclass(frozen=True, slots=True)
