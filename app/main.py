@@ -16,8 +16,6 @@ def create_app(plan_repository: PlanRepository | None = None) -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(_application: FastAPI) -> AsyncGenerator[None]:
-        if isinstance(repository, PostgresPlanRepository):
-            repository.create_schema()
         try:
             yield
         finally:

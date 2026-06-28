@@ -4,6 +4,8 @@ import os
 from collections.abc import Iterator
 
 import pytest
+from alembic import command
+from alembic.config import Config
 from sqlalchemy import create_engine
 from testcontainers.postgres import PostgresContainer
 
@@ -23,11 +25,16 @@ pytestmark = [
 @pytest.fixture(scope="module")
 def repository() -> Iterator[PostgresPlanRepository]:
     with PostgresContainer("postgres:17-alpine", driver="psycopg") as postgres:
-        engine = create_engine(postgres.get_connection_url())
+        database_url = postgres.get_connection_url()
+        alembic_config = Config("alembic.ini")
+        alembic_config.set_main_option("sqlalchemy.url", database_url)
+        command.upgrade(alembic_config, "head")
+
+        engine = create_engine(database_url)
         repository = PostgresPlanRepository(engine)
-        repository.create_schema()
         yield repository
         engine.dispose()
+        command.downgrade(alembic_config, "base")
 
 
 def test_postgres_plan_crud(repository: PostgresPlanRepository) -> None:

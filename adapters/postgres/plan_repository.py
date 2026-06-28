@@ -33,9 +33,6 @@ class PostgresPlanRepository:
     def from_url(cls, database_url: str) -> "PostgresPlanRepository":
         return cls(create_engine(database_url, pool_pre_ping=True))
 
-    def create_schema(self) -> None:
-        Base.metadata.create_all(self._engine)
-
     def close(self) -> None:
         self._engine.dispose()
 
