@@ -13,6 +13,7 @@ exclude_also = [
     "raise NotImplementedError",
 ]
 show_missing = true
+fail_under = 80
 
 [tool.pyright]
 include = ["adapters", "app", "config", "consumers", "domain", "tests"]
