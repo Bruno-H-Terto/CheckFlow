@@ -6,12 +6,17 @@ from fastapi import FastAPI
 from adapters.postgres import PostgresPlanRepository
 from app.controllers.health_controller import router as health_router
 from app.controllers.plan_controller import router as plan_router
+from app.controllers.step_controller import router as step_router
+from app.ports.event_publisher import EventPublisher
 from app.ports.plan_repository import PlanRepository
-from app.services import PlanService
+from app.services import PlanService, StepExecutionScheduler
 from config.settings import settings
 
 
-def create_app(plan_repository: PlanRepository | None = None) -> FastAPI:
+def create_app(
+    plan_repository: PlanRepository | None = None,
+    event_publisher: EventPublisher | None = None,
+) -> FastAPI:
     repository = plan_repository or PostgresPlanRepository.from_url(settings.DATABASE_URL)
 
     @asynccontextmanager
@@ -24,8 +29,12 @@ def create_app(plan_repository: PlanRepository | None = None) -> FastAPI:
 
     application = FastAPI(title="Checkflow API", lifespan=lifespan)
     application.state.plan_service = PlanService(repository)
+    application.state.step_execution_scheduler = (
+        StepExecutionScheduler(event_publisher) if event_publisher is not None else None
+    )
     application.include_router(health_router)
     application.include_router(plan_router)
+    application.include_router(step_router)
     return application
 
 
