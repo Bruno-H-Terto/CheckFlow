@@ -88,7 +88,7 @@ def test_postgres_step_crud_with_jsonb(
     first = step_repository.add(Step(plan.id, 1, "Create order", action, assertions))
 
     assert step_repository.list_by_plan(plan.id) == [first, second]
-    assert step_repository.get(first.id or 0) == first
+    assert step_repository.get(plan.id, first.id or 0) == first
 
     updated = step_repository.update(
         Step(
@@ -104,6 +104,6 @@ def test_postgres_step_crud_with_jsonb(
     )
     assert updated.name == "Submit order"
 
-    assert step_repository.delete(first.id or 0) is True
-    assert step_repository.get(first.id or 0) is None
-    assert step_repository.delete(first.id or 0) is False
+    assert step_repository.delete(plan.id, first.id or 0) is True
+    assert step_repository.get(plan.id, first.id or 0) is None
+    assert step_repository.delete(plan.id, first.id or 0) is False

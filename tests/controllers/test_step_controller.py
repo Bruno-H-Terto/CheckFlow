@@ -84,16 +84,16 @@ def test_step_crud_as_semantic_block_of_plan(client: TestClient) -> None:
     listed = request(client, "GET", "/plans/1/steps")
     assert [item["name"] for item in listed.json()] == ["Create order"]
 
-    fetched = request(client, "GET", "/steps/1")
+    fetched = request(client, "GET", "/plans/1/steps/1")
     assert fetched.status_code == 200
 
-    updated = request(client, "PUT", "/steps/1", step_payload("Submit order"))
+    updated = request(client, "PUT", "/plans/1/steps/1", step_payload("Submit order"))
     assert updated.status_code == 200
     assert updated.json()["name"] == "Submit order"
 
-    deleted = request(client, "DELETE", "/steps/1")
+    deleted = request(client, "DELETE", "/plans/1/steps/1")
     assert deleted.status_code == 204
-    assert request(client, "GET", "/steps/1").status_code == 404
+    assert request(client, "GET", "/plans/1/steps/1").status_code == 404
 
 
 def test_schedules_existing_step_execution(
@@ -103,13 +103,13 @@ def test_schedules_existing_step_execution(
     request(client, "POST", "/plans", {"name": "Order flow"})
     request(client, "POST", "/plans/1/steps", step_payload())
 
-    response = request(client, "POST", "/steps/1/executions")
+    response = request(client, "POST", "/plans/1/steps/1/executions")
 
     assert response.status_code == 202
     assert response.json()["step_id"] == 1
     assert response.json()["execution_id"]
     assert publisher.messages[0][0:2] == (
-        "checkflow.execution-events",
+        "checkflow.execution.events",
         response.json()["execution_id"],
     )
 
@@ -126,6 +126,6 @@ def test_returns_unavailable_without_event_publisher() -> None:
         step_repository=step_repository,
     )
     with TestClient(application) as client:
-        response = request(client, "POST", "/steps/42/executions")
+        response = request(client, "POST", "/plans/1/steps/42/executions")
 
     assert response.status_code == 503

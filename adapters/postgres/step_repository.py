@@ -67,9 +67,18 @@ class PostgresStepRepository:
     def close(self) -> None:
         self._engine.dispose()
 
-    def add(self, step: Step) -> Step:
+    def add(self, plan_id: int, step: Step) -> Step:
+        statement = select(PlanModel).where(
+            PlanModel.id == plan_id,
+            PlanModel.deleted_at.is_(None)
+        )
+        
         model = self._to_model(step)
         with Session(self._engine) as session:
+            plan = session.scalar(statement)
+            if plan is None:
+                raise ValueError(f"Not found plan with id {plan_id}")
+        
             session.add(model)
             session.commit()
             session.refresh(model)
@@ -78,13 +87,13 @@ class PostgresStepRepository:
 
     def get(self, plan_id: int, step_id: int) -> Step | None:
         statement = select(StepModel).where(
-            PlanModel.id == plan_id,
+            StepModel.plan_id == plan_id,
             StepModel.id == step_id,
             StepModel.deleted_at.is_(None),
         )
+
         with Session(self._engine) as session:
             model = session.scalar(statement)
-
             return None if model is None else self._to_entity(model)
 
     def list_by_plan(self, plan_id: int) -> list[Step]:
@@ -96,14 +105,21 @@ class PostgresStepRepository:
         with Session(self._engine) as session:
             return [self._to_entity(model) for model in session.scalars(statement)]
 
-    def update(self, step: Step) -> Step:
+    def update(self, plan_id: int, step: Step) -> Step:
         if step.id is None:
             raise ValueError("Cannot update a step without an id")
 
+        statement = select(StepModel).where(
+            StepModel.plan_id == plan_id,
+            StepModel.id == step.id,
+            StepModel.deleted_at.is_(None),
+        )
+
         with Session(self._engine) as session:
-            model = session.get(StepModel, step.id)
-            if model is None or model.deleted_at is not None:
-                raise ValueError(f"Step {step.id} does not exist")
+            model = session.scalar(statement)
+
+            if model is None:
+                raise ValueError(f"Step {step.id} does not exist in plan {plan_id}")
 
             model.sequence = step.sequence
             model.name = step.name
@@ -112,6 +128,7 @@ class PostgresStepRepository:
             model.assertions = self._assertion_payloads(step.assertions)
             model.updated_at = step.updated_at
             model.active = step.active
+
             session.commit()
             session.refresh(model)
 
@@ -119,14 +136,15 @@ class PostgresStepRepository:
 
     def delete(self, plan_id: int, step_id: int) -> bool:
         statement = select(StepModel).where(
-            PlanModel.id == plan_id,
+            StepModel.plan_id == plan_id,
             StepModel.id == step_id,
             StepModel.deleted_at.is_(None),
         )
+
         with Session(self._engine) as session:
             step = session.scalar(statement)
 
-            if step is None or step.deleted_at is not None:
+            if step is None:
                 return False
 
             step.deleted_at = datetime.now(UTC)

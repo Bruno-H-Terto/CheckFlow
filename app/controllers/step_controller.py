@@ -122,7 +122,7 @@ def update_step(
 ) -> StepResponse:
     try:
         current = service.get(plan_id, step_id)
-        updated = service.update(step_id, payload.to_entity(current.plan_id))
+        updated = service.update(plan_id, step_id, payload.to_entity(current.plan_id))
 
         return StepResponse.model_validate(updated)
     except StepNotFoundError as error:

@@ -25,7 +25,7 @@ def test_schedules_step_execution_as_versioned_event() -> None:
     assert event.event_type == "step.execution.requested.v1"
     assert publisher.messages == [
         (
-            "checkflow.execution-events",
+            "checkflow.execution.events",
             event.execution_id,
             event.to_payload(),
         )
@@ -39,4 +39,4 @@ def test_publishes_future_execution_as_scheduled_event() -> None:
     event = StepExecutionScheduler(publisher).schedule(42, run_at)
 
     assert event.event_type == "step.execution.scheduled.v1"
-    assert publisher.messages[0][0] == "checkflow.execution-events"
+    assert publisher.messages[0][0] == "checkflow.execution.events"

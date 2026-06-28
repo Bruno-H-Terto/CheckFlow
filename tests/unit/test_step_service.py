@@ -28,8 +28,10 @@ def service() -> StepService:
 
 def test_creates_updates_and_lists_step(service: StepService) -> None:
     created = service.create(make_step())
+    assert created
+    assert created.id
 
-    updated = service.update(created.id or 0, make_step("Submit order"))
+    updated = service.update(created.plan_id, created.id, make_step("Submit order"))
 
     assert updated.name == "Submit order"
     assert updated.plan_id == created.plan_id
@@ -39,12 +41,12 @@ def test_creates_updates_and_lists_step(service: StepService) -> None:
 def test_deletes_step(service: StepService) -> None:
     created = service.create(make_step())
 
-    service.delete(created.id or 0)
+    service.delete(created.plan_id, created.id or 0)
 
     with pytest.raises(StepNotFoundError):
-        service.get(created.id or 0)
+        service.get(created.plan_id, created.id or 0)
 
 
 def test_raises_when_deleting_unknown_step(service: StepService) -> None:
     with pytest.raises(StepNotFoundError, match="Step 99 was not found"):
-        service.delete(99)
+        service.delete(99, 99)
