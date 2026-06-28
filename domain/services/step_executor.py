@@ -18,8 +18,7 @@ class StepExecutor:
     def execute(self, step: Step) -> StepExecutionResult:
         action_result = self._runner.run(step.action)
         assertion_results = tuple(
-            self._evaluate(assertion, action_result)
-            for assertion in step.assertions
+            self._evaluate(assertion, action_result) for assertion in step.assertions
         )
         return StepExecutionResult(
             step_id=step.id,

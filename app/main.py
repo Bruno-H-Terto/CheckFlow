@@ -19,8 +19,12 @@ def create_app(
     event_publisher: EventPublisher | None = None,
     step_repository: StepRepository | None = None,
 ) -> FastAPI:
-    plan_repo = plan_repository or PostgresPlanRepository.from_url(settings.DATABASE_URL)
-    step_repo = step_repository or PostgresStepRepository.from_url(settings.DATABASE_URL)
+    plan_repo = plan_repository or PostgresPlanRepository.from_url(
+        settings.DATABASE_URL
+    )
+    step_repo = step_repository or PostgresStepRepository.from_url(
+        settings.DATABASE_URL
+    )
 
     @asynccontextmanager
     async def lifespan(_application: FastAPI) -> AsyncGenerator[None]:

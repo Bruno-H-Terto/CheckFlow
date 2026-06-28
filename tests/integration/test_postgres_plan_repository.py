@@ -19,7 +19,6 @@ from domain.entities.step import (
     StepAssertion,
 )
 
-
 pytestmark = [
     pytest.mark.integration,
     pytest.mark.skipif(
@@ -85,12 +84,8 @@ def test_postgres_step_crud_with_jsonb(
         StepAssertion(AssertionTarget.BODY, "created", path="status"),
     )
 
-    second = step_repository.add(
-        Step(plan.id, 2, "Read order", action, assertions)
-    )
-    first = step_repository.add(
-        Step(plan.id, 1, "Create order", action, assertions)
-    )
+    second = step_repository.add(Step(plan.id, 2, "Read order", action, assertions))
+    first = step_repository.add(Step(plan.id, 1, "Create order", action, assertions))
 
     assert step_repository.list_by_plan(plan.id) == [first, second]
     assert step_repository.get(first.id or 0) == first

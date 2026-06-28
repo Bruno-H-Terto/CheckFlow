@@ -14,8 +14,7 @@ class SqliteInternalLogRepository:
         self._create_schema()
 
     def _create_schema(self) -> None:
-        self._connection.execute(
-            """
+        self._connection.execute("""
             CREATE TABLE IF NOT EXISTS internal_logs (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 level TEXT NOT NULL,
@@ -23,8 +22,7 @@ class SqliteInternalLogRepository:
                 context TEXT NOT NULL,
                 created_at TEXT NOT NULL
             )
-            """
-        )
+            """)
         self._connection.commit()
 
     def save(self, log: InternalLog) -> InternalLog:

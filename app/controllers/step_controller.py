@@ -16,7 +16,6 @@ from app.services import (
     StepService,
 )
 
-
 router = APIRouter(tags=["steps"])
 
 
@@ -83,8 +82,7 @@ def list_steps(
     except PlanNotFoundError as error:
         raise _not_found(error) from error
     return [
-        StepResponse.model_validate(step)
-        for step in step_service.list_by_plan(plan_id)
+        StepResponse.model_validate(step) for step in step_service.list_by_plan(plan_id)
     ]
 
 

@@ -5,7 +5,6 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from app.schemas.plan_schema import PlanCreate, PlanResponse, PlanUpdate
 from app.services import PlanNotFoundError, PlanService
 
-
 router = APIRouter(prefix="/plans", tags=["plans"])
 
 

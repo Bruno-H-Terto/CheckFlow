@@ -3,7 +3,6 @@ from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Protocol
 
-
 type JsonPrimitive = str | int | float | bool | None
 type JsonValue = JsonPrimitive | list[JsonValue] | dict[str, JsonValue]
 
@@ -51,7 +50,10 @@ class StepAssertion:
     path: str | None = None
 
     def __post_init__(self) -> None:
-        if self.target in {AssertionTarget.BODY, AssertionTarget.HEADER} and not self.path:
+        if (
+            self.target in {AssertionTarget.BODY, AssertionTarget.HEADER}
+            and not self.path
+        ):
             raise ValueError(f"Assertion target '{self.target}' requires a path")
 
 

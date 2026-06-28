@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
 from enum import StrEnum
+from typing import Self
 
 
 class LogLevel(StrEnum):
@@ -18,5 +19,5 @@ class InternalLog:
     created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
     id: int | None = None
 
-    def with_id(self, log_id: int) -> "InternalLog":
+    def with_id(self, log_id: int) -> Self:
         return replace(self, id=log_id)

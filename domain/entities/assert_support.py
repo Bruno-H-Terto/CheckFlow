@@ -13,6 +13,7 @@ class Http(CallBase):
     """
     Class base for http calls
     """
+
     body: dict[str, Any] = field(default_factory=dict[str, Any])
     latency: int | None = None
     headers: dict[str, Any] = field(default_factory=dict[str, Any])
