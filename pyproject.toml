@@ -1,0 +1,23 @@
+[tool.pytest.ini_options]
+addopts = "--strict-config --strict-markers --cov=app --cov=adapters --cov=config --cov=domain --cov-report=term-missing"
+testpaths = ["tests"]
+markers = ["integration: tests that require external services or containers"]
+
+[tool.coverage.run]
+branch = true
+omit = ["tests/*"]
+
+[tool.coverage.report]
+exclude_also = [
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+]
+show_missing = true
+
+[tool.pyright]
+include = ["adapters", "app", "config", "consumers", "domain", "tests"]
+exclude = [".venv"]
+pythonVersion = "3.12"
+typeCheckingMode = "strict"
+venvPath = "."
+venv = ".venv"

@@ -2,10 +2,11 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import IntEnum
 from typing import Any
+
 from domain.entities.assert_support import CallBase, Http
 
 
-ASSERT_SUPPORT: dict[str, CallBase] = {
+ASSERT_SUPPORT: dict[str, type[CallBase]] = {
     "http": Http
 }
 
@@ -36,7 +37,7 @@ class CheckPoint:
 
 @dataclass(frozen=True, slots=True)
 class Assert:
-    expected: tuple[dict[Any, Any]] | None = ()
+    expected: tuple[dict[Any, Any], ...] | None = ()
 
 @dataclass(frozen=True, slots=True)
 class Action:
@@ -44,11 +45,11 @@ class Action:
     sequence: int
     _type: str
 
-    def calls(self):
-      self._run()
+    def calls(self) -> CallBase:
+        return self._run()
 
     def _run(self) -> CallBase:
-        return ASSERT_SUPPORT[self._type]
+        return ASSERT_SUPPORT[self._type]()
     
 
 @dataclass(frozen=True, slots=True)
@@ -59,7 +60,7 @@ class Step:
     name: str
     status: StatusCode
     description: str | None = ""
-    asserts: list[Assert] = field(min=1)
-    action: list[Action] = field(min=1)
+    asserts: list[Assert] = field(default_factory=list[Assert])
+    action: list[Action] = field(default_factory=list[Action])
     started_in: datetime = field(default_factory=datetime.now)
     finished_in: datetime | None = None

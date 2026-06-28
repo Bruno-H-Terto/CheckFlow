@@ -5,7 +5,12 @@ __pycache__/
 *.py[cod]
 .coverage
 htmlcov/
+.pyright/
+.ruff_cache/
 temp/*
 *.prof
 *.bin
 .memray
+*.db
+*.sqlite
+*.sqlite3
