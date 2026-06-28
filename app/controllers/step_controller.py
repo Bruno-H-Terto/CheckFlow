@@ -2,7 +2,7 @@ from typing import Annotated, cast
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 
-from app.schemas.step_schema import StepCreate, StepResponse, StepUpdate
+from app.schemas.step_schema import StepCreate, StepReorder, StepResponse, StepUpdate
 from app.services import PlanNotFoundError, PlanService, StepNotFoundError, StepService
 
 
@@ -64,6 +64,29 @@ def list_steps(
         StepResponse.model_validate(step)
         for step in step_service.list_by_plan(plan_id)
     ]
+
+
+@router.patch(
+    "/plans/{plan_id}/steps/reorder",
+    response_model=list[StepResponse],
+    summary="Reordenar steps do plano",
+)
+def reorder_steps(
+    plan_id: int,
+    payload: StepReorder,
+    step_service: StepServiceDependency,
+    plan_service: PlanServiceDependency,
+) -> list[StepResponse]:
+    try:
+        plan_service.get(plan_id)
+        positions = {item.step_id: item.sequence for item in payload.steps}
+        if len(positions) != len(payload.steps):
+            raise ValueError("Step ids must be unique")
+        return [StepResponse.model_validate(item) for item in step_service.reorder(plan_id, positions)]
+    except PlanNotFoundError as error:
+        raise _not_found(error) from error
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
 
 
 @router.get(

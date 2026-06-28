@@ -17,7 +17,7 @@ O backend usa uma única imagem e o Honcho inicia os processos do `Procfile`:
 Kafka funciona como event bus no tópico `checkflow.execution-events`. Grupos de
 consumidores independentes recebem o mesmo stream. Redis é usado como cache do
 último estado de cada execução e como broker/backend do Celery. PostgreSQL armazena
-planos e steps.
+planos, steps, histórico das execuções e resultados de cada chamada.
 
 O serviço one-shot `kafka-init` cria o tópico antes de liberar o backend.
 
@@ -82,7 +82,12 @@ GET    /plans/{plan_id}/steps
 GET    /plans/{plan_id}/steps/{step_id}
 PUT    /plans/{plan_id}/steps/{step_id}
 DELETE /plans/{plan_id}/steps/{step_id}
+PATCH  /plans/{plan_id}/steps/reorder
 POST   /plans/{plan_id}/executions
+GET    /plans/{plan_id}/executions
+GET    /plans/{plan_id}/executions/{execution_id}
+POST   /plans/{plan_id}/executions/{execution_id}/cancel
+POST   /plans/{plan_id}/executions/{execution_id}/retry
 ```
 
 Exemplo de step:
@@ -105,6 +110,13 @@ Exemplo de step:
 }
 ```
 
+`sequence` é opcional na criação. Quando omitida, a API usa a próxima posição
+do plano. A reordenação recebe todos os steps com sequências contíguas:
+
+```json
+{"steps": [{"step_id": 2, "sequence": 1}, {"step_id": 1, "sequence": 2}]}
+```
+
 Execução imediata:
 
 ```bash
@@ -117,6 +129,52 @@ Execução futura usa uma data ISO 8601 com timezone:
 
 ```json
 {"scheduled_for": "2026-06-28T18:00:00-03:00"}
+```
+
+### Variáveis entre steps
+
+Um step pode extrair valores da resposta e os próximos steps podem usar
+templates `{{variavel}}` na URL, headers, body e valores esperados dos asserts.
+As variáveis pertencem à execução do plano e são persistidas no PostgreSQL.
+
+Exemplo de login que captura um token:
+
+```json
+{
+  "name": "Login",
+  "action": {
+    "method": "POST",
+    "url": "https://api.example.com/auth",
+    "body": {"email": "qa@example.com", "password": "secret"}
+  },
+  "assertions": [{"target": "status_code", "expected": 200}],
+  "extracts": {"access_token": "body.access_token"}
+}
+```
+
+O step seguinte reutiliza o valor:
+
+```json
+{
+  "name": "Consultar perfil",
+  "action": {
+    "method": "GET",
+    "url": "https://api.example.com/me",
+    "headers": {"Authorization": "Bearer {{access_token}}"}
+  },
+  "assertions": [
+    {"target": "status_code", "expected": 200},
+    {"target": "body", "path": "email", "expected": "qa@example.com"}
+  ]
+}
+```
+
+As fontes suportadas para extração são `body.caminho.aninhado`,
+`header.Nome-Do-Header` e `status_code`. Também é possível fornecer variáveis
+iniciais ao iniciar uma execução:
+
+```json
+{"variables": {"tenant": "acme"}}
 ```
 
 ## Realtime e controle

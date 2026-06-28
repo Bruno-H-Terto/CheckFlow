@@ -2,8 +2,10 @@ from datetime import UTC, datetime
 
 from app.ports.background_task_queue import BackgroundTaskQueue
 from app.ports.event_publisher import EventPublisher
+from app.ports.execution_repository import ExecutionRepository
 from app.ports.step_repository import StepRepository
 from domain.entities.step import JsonValue, Step
+from domain.entities.execution import ExecutionStatus
 
 
 class PlanExecutionOrchestrator:
@@ -14,14 +16,23 @@ class PlanExecutionOrchestrator:
         steps: StepRepository,
         tasks: BackgroundTaskQueue,
         publisher: EventPublisher,
+        executions: ExecutionRepository | None = None,
     ) -> None:
         self._steps = steps
         self._tasks = tasks
         self._publisher = publisher
+        self._executions = executions
 
     def start(self, plan_id: int, execution_id: str) -> None:
+        if self._executions is not None:
+            execution = self._executions.get(execution_id)
+            if execution is not None and execution.status == ExecutionStatus.CANCELLED:
+                return
+            self._executions.set_plan_status(execution_id, ExecutionStatus.RUNNING)
         steps = self._active_steps(plan_id)
         if not steps:
+            if self._executions is not None:
+                self._executions.set_plan_status(execution_id, ExecutionStatus.COMPLETED)
             self._notify("completed", plan_id, execution_id, {"total_steps": 0})
             return
         self._notify_progress("started", plan_id, execution_id, steps[0], 0, len(steps))
@@ -33,6 +44,10 @@ class PlanExecutionOrchestrator:
         execution_id: str,
         step_id: int,
     ) -> None:
+        if self._executions is not None:
+            execution = self._executions.get(execution_id)
+            if execution is not None and execution.status == ExecutionStatus.CANCELLED:
+                return
         steps = self._active_steps(plan_id)
         position = next(
             (index for index, step in enumerate(steps) if step.id == step_id),
@@ -42,6 +57,8 @@ class PlanExecutionOrchestrator:
             raise ValueError(f"Step {step_id} is not part of plan {plan_id}")
         next_position = position + 1
         if next_position >= len(steps):
+            if self._executions is not None:
+                self._executions.set_plan_status(execution_id, ExecutionStatus.COMPLETED)
             self._notify(
                 "completed",
                 plan_id,
@@ -67,6 +84,8 @@ class PlanExecutionOrchestrator:
         step_id: int,
         error: str,
     ) -> None:
+        if self._executions is not None:
+            self._executions.set_plan_status(execution_id, ExecutionStatus.FAILED, error)
         self._notify(
             "failed",
             plan_id,

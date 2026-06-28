@@ -98,3 +98,18 @@ def test_step_crud_as_semantic_block_of_plan(client: TestClient) -> None:
 
 def test_rejects_unknown_plan(client: TestClient) -> None:
     assert request(client, "POST", "/plans/99/steps", step_payload()).status_code == 404
+
+
+def test_assigns_sequence_and_reorders_all_steps(client: TestClient) -> None:
+    request(client, "POST", "/plans", {"name": "Order flow"})
+    first_payload = step_payload("First")
+    first_payload.pop("sequence")
+    second_payload = step_payload("Second")
+    second_payload.pop("sequence")
+    first = request(client, "POST", "/plans/1/steps", first_payload).json()
+    second = request(client, "POST", "/plans/1/steps", second_payload).json()
+    assert [first["sequence"], second["sequence"]] == [1, 2]
+
+    reordered = request(client, "PATCH", "/plans/1/steps/reorder", {"steps": [{"step_id": first["id"], "sequence": 2}, {"step_id": second["id"], "sequence": 1}]})
+    assert reordered.status_code == 200
+    assert [item["name"] for item in reordered.json()] == ["Second", "First"]

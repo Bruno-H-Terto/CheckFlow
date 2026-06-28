@@ -7,7 +7,8 @@ from httpx import Response
 
 from app.main import create_app
 from domain.entities.step import JsonValue
-from tests.fakes import InMemoryPlanRepository, InMemoryStepRepository
+from tests.fakes import InMemoryExecutionRepository, InMemoryPlanRepository, InMemoryStepRepository
+from domain.entities.execution import ExecutionStatus
 
 
 class SpyEventPublisher:
@@ -29,11 +30,17 @@ def publisher() -> SpyEventPublisher:
 
 
 @pytest.fixture
-def client(publisher: SpyEventPublisher) -> Iterator[TestClient]:
+def executions() -> InMemoryExecutionRepository:
+    return InMemoryExecutionRepository()
+
+
+@pytest.fixture
+def client(publisher: SpyEventPublisher, executions: InMemoryExecutionRepository) -> Iterator[TestClient]:
     application = create_app(
         InMemoryPlanRepository(),
         publisher,
         InMemoryStepRepository(),
+        executions,
     )
     with TestClient(application) as test_client:
         yield test_client
@@ -111,3 +118,25 @@ def test_schedules_the_whole_plan(
         "checkflow.execution-events",
         response.json()["execution_id"],
     )
+
+
+def test_execution_history_cancel_and_retry(client: TestClient, publisher: SpyEventPublisher, executions: InMemoryExecutionRepository) -> None:
+    request(client, "POST", "/plans", {"name": "Order flow"})
+    scheduled = request(client, "POST", "/plans/1/executions", {"variables": {"tenant": "acme"}}).json()
+    execution_id = scheduled["execution_id"]
+
+    history = request(client, "GET", "/plans/1/executions")
+    assert history.json()[0]["variables"] == {"tenant": "acme"}
+    detail = request(client, "GET", f"/plans/1/executions/{execution_id}")
+    assert detail.status_code == 200
+    assert detail.json()["steps"] == []
+
+    cancelled = request(client, "POST", f"/plans/1/executions/{execution_id}/cancel")
+    assert cancelled.status_code == 202
+    assert publisher.messages[-1][2]["event_type"] == "plan.execution.stop-requested.v1"
+
+    executions.set_plan_status(execution_id, ExecutionStatus.FAILED, "boom")
+    retried = request(client, "POST", f"/plans/1/executions/{execution_id}/retry")
+    assert retried.status_code == 202
+    retry = executions.get(retried.json()["execution_id"])
+    assert retry is not None and retry.retry_of == execution_id

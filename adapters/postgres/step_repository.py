@@ -44,6 +44,7 @@ class StepModel(Base):
     assertions: Mapped[list[dict[str, JsonValue]]] = mapped_column(
         JSONB, nullable=False
     )
+    extracts: Mapped[dict[str, str]] = mapped_column(JSONB, nullable=False, default=dict)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False
     )
@@ -126,6 +127,7 @@ class PostgresStepRepository:
             model.description = step.description
             model.action = self._action_payload(step.action)
             model.assertions = self._assertion_payloads(step.assertions)
+            model.extracts = step.extracts
             model.updated_at = step.updated_at
             model.active = step.active
 
@@ -153,6 +155,27 @@ class PostgresStepRepository:
 
             return True
 
+    def reorder(self, plan_id: int, positions: dict[int, int]) -> list[Step]:
+        statement = select(StepModel).where(
+            StepModel.plan_id == plan_id,
+            StepModel.deleted_at.is_(None),
+        )
+        with Session(self._engine) as session:
+            models = list(session.scalars(statement))
+            by_id = {model.id: model for model in models}
+            if set(positions) != set(by_id):
+                raise ValueError("Reorder must include every step in the plan")
+            if set(positions.values()) != set(range(1, len(models) + 1)):
+                raise ValueError("Sequences must be unique and contiguous from 1")
+            for index, model in enumerate(models, start=1):
+                model.sequence = -index
+            session.flush()
+            for step_id, sequence in positions.items():
+                by_id[step_id].sequence = sequence
+                by_id[step_id].updated_at = datetime.now(UTC)
+            session.commit()
+            return [self._to_entity(model) for model in sorted(models, key=lambda item: item.sequence)]
+
     @classmethod
     def _to_model(cls, step: Step) -> StepModel:
         return StepModel(
@@ -162,6 +185,7 @@ class PostgresStepRepository:
             description=step.description,
             action=cls._action_payload(step.action),
             assertions=cls._assertion_payloads(step.assertions),
+            extracts=step.extracts,
             created_at=step.created_at,
             updated_at=step.updated_at,
             deleted_at=step.deleted_at,
@@ -222,6 +246,7 @@ class PostgresStepRepository:
                 )
                 for item in assertions
             ),
+            extracts=model.extracts,
             created_at=model.created_at,
             updated_at=model.updated_at,
             deleted_at=model.deleted_at,

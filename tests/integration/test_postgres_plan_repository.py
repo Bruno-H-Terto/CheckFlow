@@ -9,7 +9,8 @@ from alembic.config import Config
 from sqlalchemy import create_engine
 from testcontainers.postgres import PostgresContainer
 
-from adapters.postgres import PostgresPlanRepository, PostgresStepRepository
+from adapters.postgres import PostgresExecutionRepository, PostgresPlanRepository, PostgresStepRepository
+from domain.entities.execution import ExecutionStatus, PlanExecution
 from domain.entities.flow_validator import Plan
 from domain.entities.step import (
     AssertionTarget,
@@ -29,7 +30,7 @@ pytestmark = [
 
 
 @pytest.fixture(scope="module")
-def repositories() -> Iterator[tuple[PostgresPlanRepository, PostgresStepRepository]]:
+def repositories() -> Iterator[tuple[PostgresPlanRepository, PostgresStepRepository, PostgresExecutionRepository]]:
     with PostgresContainer("postgres:17-alpine", driver="psycopg") as postgres:
         database_url = postgres.get_connection_url()
         alembic_config = Config("alembic.ini")
@@ -37,15 +38,15 @@ def repositories() -> Iterator[tuple[PostgresPlanRepository, PostgresStepReposit
         command.upgrade(alembic_config, "head")
 
         engine = create_engine(database_url)
-        yield PostgresPlanRepository(engine), PostgresStepRepository(engine)
+        yield PostgresPlanRepository(engine), PostgresStepRepository(engine), PostgresExecutionRepository(engine)
         engine.dispose()
         command.downgrade(alembic_config, "base")
 
 
 def test_postgres_plan_crud(
-    repositories: tuple[PostgresPlanRepository, PostgresStepRepository],
+    repositories: tuple[PostgresPlanRepository, PostgresStepRepository, PostgresExecutionRepository],
 ) -> None:
-    repository, _ = repositories
+    repository, _, _ = repositories
     created = repository.add(Plan(name="Distributed checkout"))
 
     assert created.id is not None
@@ -69,9 +70,9 @@ def test_postgres_plan_crud(
 
 
 def test_postgres_step_crud_with_jsonb(
-    repositories: tuple[PostgresPlanRepository, PostgresStepRepository],
+    repositories: tuple[PostgresPlanRepository, PostgresStepRepository, PostgresExecutionRepository],
 ) -> None:
-    plan_repository, step_repository = repositories
+    plan_repository, step_repository, _ = repositories
     plan = plan_repository.add(Plan(name="Order consistency"))
     assert plan.id is not None
     action = HttpAction(
@@ -112,3 +113,21 @@ def test_postgres_step_crud_with_jsonb(
     assert step_repository.delete(plan.id, first.id or 0) is True
     assert step_repository.get(plan.id, first.id or 0) is None
     assert step_repository.delete(plan.id, first.id or 0) is False
+
+
+def test_postgres_execution_history(repositories: tuple[PostgresPlanRepository, PostgresStepRepository, PostgresExecutionRepository]) -> None:
+    plans, steps, executions = repositories
+    plan = plans.add(Plan(name="Authentication flow"))
+    assert plan.id is not None
+    step = steps.add(plan.id, Step(plan.id, 1, "Login", HttpAction(HttpMethod.POST, "https://api.local/auth"), (StepAssertion(AssertionTarget.STATUS_CODE, 200),), extracts={"token": "body.access_token"}))
+    assert step.id is not None
+    execution = executions.create(PlanExecution(id="execution-integration", plan_id=plan.id))
+    executions.set_plan_status(execution.id, ExecutionStatus.RUNNING)
+    executions.start_step(execution.id, step.id)
+    executions.merge_variables(execution.id, {"token": "jwt"})
+    executions.finish_step(execution.id, step.id, ExecutionStatus.COMPLETED, status_code=200, latency_ms=4, assertions=[{"passed": True}])
+    executions.set_plan_status(execution.id, ExecutionStatus.COMPLETED)
+
+    saved = executions.get(execution.id)
+    assert saved is not None and saved.variables == {"token": "jwt"}
+    assert executions.list_steps(execution.id)[0].status == ExecutionStatus.COMPLETED

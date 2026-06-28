@@ -64,6 +64,7 @@ class Step:
     name: str
     action: HttpAction
     assertions: tuple[StepAssertion, ...]
+    extracts: dict[str, str] = field(default_factory=dict[str, str])
     id: int | None = None
     description: str | None = ""
     created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
@@ -72,8 +73,8 @@ class Step:
     active: bool = True
 
     def __post_init__(self) -> None:
-        if self.sequence < 1:
-            raise ValueError("Step sequence must be greater than zero")
+        if self.sequence < 0:
+            raise ValueError("Step sequence cannot be negative")
         if not self.assertions:
             raise ValueError("Step must define at least one assertion")
 

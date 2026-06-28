@@ -35,17 +35,17 @@ class AssertionSchema(BaseModel):
 
 
 class StepWrite(BaseModel):
-    sequence: Annotated[int, Field(ge=1)]
     name: str = Field(min_length=1, max_length=128)
     description: str | None = Field(default="", max_length=2_000)
     action: HttpActionSchema
     assertions: list[AssertionSchema] = Field(min_length=1)
+    extracts: dict[str, str] = Field(default_factory=dict[str, str])
     active: bool = True
 
-    def to_entity(self, plan_id: int) -> Step:
+    def _to_entity(self, plan_id: int, sequence: int) -> Step:
         return Step(
             plan_id=plan_id,
-            sequence=self.sequence,
+            sequence=sequence,
             name=self.name,
             description=self.description,
             action=HttpAction(
@@ -64,16 +64,23 @@ class StepWrite(BaseModel):
                 )
                 for item in self.assertions
             ),
+            extracts=self.extracts,
             active=self.active,
         )
 
 
 class StepCreate(StepWrite):
-    pass
+    sequence: Annotated[int | None, Field(ge=1)] = None
+
+    def to_entity(self, plan_id: int) -> Step:
+        return self._to_entity(plan_id, self.sequence or 0)
 
 
 class StepUpdate(StepWrite):
-    pass
+    sequence: Annotated[int, Field(ge=1)]
+
+    def to_entity(self, plan_id: int) -> Step:
+        return self._to_entity(plan_id, self.sequence)
 
 
 class StepResponse(BaseModel):
@@ -86,6 +93,16 @@ class StepResponse(BaseModel):
     description: str | None
     action: HttpActionSchema
     assertions: list[AssertionSchema]
+    extracts: dict[str, str]
     created_at: datetime
     updated_at: datetime
     active: bool
+
+
+class StepPosition(BaseModel):
+    step_id: int = Field(gt=0)
+    sequence: int = Field(gt=0)
+
+
+class StepReorder(BaseModel):
+    steps: list[StepPosition] = Field(min_length=1)
