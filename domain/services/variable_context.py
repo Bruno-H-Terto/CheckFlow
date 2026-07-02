@@ -60,8 +60,22 @@ def _extract(source: str, result: ActionResult) -> JsonValue:
     if source.startswith("body."):
         current = result.body
         for part in source.removeprefix("body.").split("."):
-            if not isinstance(current, dict) or part not in current:
-                raise ValueError(f"Extraction source '{source}' was not found")
-            current = current[part]
+            current = _read_path_part(current, part, source)
         return current
     raise ValueError(f"Unsupported extraction source '{source}'")
+
+
+def _read_path_part(current: JsonValue, part: str, source: str) -> JsonValue:
+    if isinstance(current, dict):
+        if part not in current:
+            raise ValueError(f"Extraction source '{source}' was not found")
+        return current[part]
+    if isinstance(current, list):
+        try:
+            index = int(part)
+        except ValueError as exc:
+            raise ValueError(f"Extraction source '{source}' was not found") from exc
+        if index < 0 or index >= len(current):
+            raise ValueError(f"Extraction source '{source}' was not found")
+        return current[index]
+    raise ValueError(f"Extraction source '{source}' was not found")
