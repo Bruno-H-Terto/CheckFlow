@@ -1,0 +1,41 @@
+{
+  "include": [
+    "app",
+    "adapters",
+    "consumers",
+    "domain",
+    "tests"
+  ],
+  "exclude": [
+    ".venv",
+    "**/__pycache__",
+    ".pytest_cache",
+    ".mypy_cache",
+    "build",
+    "dist",
+    "**/node_modules",
+    "**/.*"
+  ],
+  "venvPath": ".",
+  "venv": ".venv",
+  "pythonVersion": "3.12",
+  "typeCheckingMode": "strict",
+  "reportMissingImports": true,
+  "reportMissingTypeStubs": false,
+  "reportUnknownMemberType": false,
+  "reportUnknownVariableType": false,
+  "reportUnknownArgumentType": false,
+  "reportUnknownLambdaType": false,
+  "reportUnknownParameterType": false,
+  "reportMissingParameterType": true,
+  "reportMissingTypeArgument": true,
+  "reportUntypedFunctionDecorator": false,
+  "executionEnvironments": [
+    {
+      "root": ".",
+      "extraPaths": [
+        "."
+      ]
+    }
+  ]
+}
