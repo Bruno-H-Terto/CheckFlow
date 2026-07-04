@@ -133,7 +133,9 @@ def test_postgres_step_crud_with_jsonb(
     replacement = step_repository.add(
         plan.id, Step(plan.id, 1, "Recreate order", action, assertions)
     )
-    assert [(step.id, step.sequence) for step in step_repository.list_by_plan(plan.id)] == [
+    assert [
+        (step.id, step.sequence) for step in step_repository.list_by_plan(plan.id)
+    ] == [
         (replacement.id, 1),
         (second.id, 2),
     ]

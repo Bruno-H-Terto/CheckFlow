@@ -4,14 +4,14 @@ Revision ID: 0bfa86158762
 Revises: 20260628_03
 Create Date: 2026-06-28 20:23:19.073599
 """
+
 from collections.abc import Sequence
 
 from alembic import op
 import sqlalchemy as sa
 
-
-revision: str = '0bfa86158762'
-down_revision: str | None = '20260628_03'
+revision: str = "0bfa86158762"
+down_revision: str | None = "20260628_03"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
@@ -33,9 +33,7 @@ def downgrade() -> None:
 
     # The old constraint also covers soft-deleted rows. Move those rows beyond
     # the active range so the historical data is preserved during downgrade.
-    op.execute(
-        sa.text(
-            """
+    op.execute(sa.text("""
             WITH active_max AS (
                 SELECT
                     plan_id,
@@ -60,9 +58,7 @@ def downgrade() -> None:
             FROM active_max, deleted_steps
             WHERE steps.id = deleted_steps.id
               AND active_max.plan_id = deleted_steps.plan_id
-            """
-        )
-    )
+            """))
 
     op.create_unique_constraint(
         "steps_plan_id_sequence_key",

@@ -66,3 +66,25 @@ def test_rejects_missing_variables_and_extraction_paths() -> None:
         extract_variables({"token": "body.access_token"}, ActionResult(200, 1, body={}))
     with pytest.raises(ValueError, match="Unsupported"):
         extract_variables({"token": "cookie.token"}, ActionResult(200, 1))
+
+
+def test_rejects_invalid_array_index_in_extraction_path() -> None:
+    result = ActionResult(
+        status_code=200,
+        latency_ms=1,
+        body={"items": [{"id": 42}]},
+    )
+
+    with pytest.raises(ValueError, match="was not found"):
+        extract_variables({"item_id": "body.items.1.id"}, result)
+
+
+def test_rejects_non_numeric_array_path_segment() -> None:
+    result = ActionResult(
+        status_code=200,
+        latency_ms=1,
+        body={"items": [{"id": 42}]},
+    )
+
+    with pytest.raises(ValueError, match="was not found"):
+        extract_variables({"item_id": "body.items.first.id"}, result)
