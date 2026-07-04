@@ -1,27 +1,27 @@
 # Checkflow
 
-Workflow engine voltado à validação de fluxos HTTP em sistemas distribuídos.
-Um plano define steps ordenados e, quando executado, gera uma `Execution` composta
-por várias `StepExecutions`. As execuções são assíncronas e orientadas a eventos.
+Workflow engine focused on validating HTTP flows in distributed systems.
+A plan defines ordered steps and, when executed, creates an `Execution` composed
+of multiple `StepExecutions`. Executions are asynchronous and event-driven.
 
-## Estado do projeto
+## Project Status
 
-O backend do MVP está implementado e em desenvolvimento ativo.
+The MVP backend is implemented and under active development.
 
-### Escopo do MVP
+### MVP Scope
 
-- [x] CRUD de planos
-- [x] CRUD de steps associados a planos
-- [x] Sequence automática e reordenação
-- [x] Execução sequencial do plano
-- [x] Histórico e resultados das execuções
-- [x] Variáveis e extrações entre steps
-- [x] Agendamento e execução assíncrona
-- [x] Cancelamento e retry
-- [x] WebSocket em tempo real
-- [ ] Dashboard React
+* [x] Plan CRUD
+* [x] CRUD for steps associated with plans
+* [x] Automatic sequence assignment and reordering
+* [x] Sequential plan execution
+* [x] Execution history and results
+* [x] Variables and extractions between steps
+* [x] Scheduling and asynchronous execution
+* [x] Cancellation and retry
+* [x] Real-time WebSocket
+* [ ] React dashboard
 
-### Modelo conceitual
+### Conceptual Model
 
 ```text
 Plan
@@ -32,56 +32,56 @@ Plan
         └── Variables
 ```
 
-- `Plan`: definição reutilizável do fluxo e de seus steps;
-- `Execution`: uma execução concreta de um plano;
-- `StepExecution`: resultado da execução de um step dentro de uma `Execution`;
-- `Variables`: contexto isolado compartilhado entre os steps da mesma execução.
+* `Plan`: reusable definition of the flow and its steps;
+* `Execution`: a concrete execution of a plan;
+* `StepExecution`: the result of executing a step within an `Execution`;
+* `Variables`: isolated context shared between the steps of the same execution.
 
-## Arquitetura
+## Architecture
 
-O backend usa uma única imagem e o Honcho inicia os processos do `Procfile`:
+The backend uses a single image, and Honcho starts the processes defined in the `Procfile`:
 
-- `api`: CRUD e solicitação de execuções em FastAPI;
-- `scheduler`: transforma eventos agendados em solicitações de execução;
-- `dispatcher`: consome solicitações do Kafka e cria tasks no Celery;
-- `celery`: executa os steps em background;
-- `realtime`: transmite o stream de progresso por WebSocket e recebe comandos.
+* `api`: CRUD and execution requests using FastAPI;
+* `scheduler`: turns scheduled events into execution requests;
+* `dispatcher`: consumes requests from Kafka and creates Celery tasks;
+* `celery`: executes steps in the background;
+* `realtime`: streams progress through WebSocket and receives commands.
 
-Kafka funciona como event bus no tópico `checkflow.execution-events`. Grupos de
-consumidores independentes recebem o mesmo stream. Redis é usado como cache do
-último estado de cada execução e como broker/backend do Celery. PostgreSQL armazena
-planos, steps, histórico das execuções e resultados de cada chamada.
+Kafka acts as the event bus through the `checkflow.execution-events` topic.
+Independent consumer groups receive the same stream. Redis is used as a cache for
+the latest state of each execution and as the Celery broker/backend. PostgreSQL stores
+plans, steps, execution history, and the result of each request.
 
-O serviço one-shot `kafka-init` cria o tópico antes de liberar o backend.
+The one-shot `kafka-init` service creates the topic before allowing the backend to start.
 
-## Subindo o ambiente
+## Running the Environment
 
-Pré-requisitos: Docker com Compose.
+Prerequisites: Docker with Compose.
 
 ```bash
 cp .env.example .env
 docker compose up --build
 ```
 
-O container `backend` aplica `alembic upgrade head` e executa `honcho start`.
+The `backend` container applies `alembic upgrade head` and runs `honcho start`.
 
-Serviços disponíveis:
+Available services:
 
-- API: <http://localhost:8000>
-- Swagger UI: <http://localhost:8000/docs>
-- ReDoc: <http://localhost:8000/redoc>
-- OpenAPI JSON: <http://localhost:8000/openapi.json>
-- WebSocket: `ws://localhost:8001/ws/plans/{plan_id}/executions`
+* API: http://localhost:8000
+* Swagger UI: http://localhost:8000/docs
+* ReDoc: http://localhost:8000/redoc
+* OpenAPI JSON: http://localhost:8000/openapi.json
+* WebSocket: `ws://localhost:8001/ws/plans/{plan_id}/executions`
 
-Para encerrar:
+To stop the environment:
 
 ```bash
 docker compose down
 ```
 
-Adicione `-v` somente quando também quiser apagar os dados locais.
+Add `-v` only when you also want to delete local data.
 
-## Desenvolvimento local
+## Local Development
 
 ```bash
 python -m venv .venv
@@ -91,13 +91,13 @@ docker compose up -d postgres redis kafka
 .venv/bin/honcho start
 ```
 
-Para executar a API no host, ajuste `DATABASE_URL` para um PostgreSQL acessível
-fora da rede do Compose. O caminho recomendado para subir o stack inteiro é o
-comando `docker compose up --build` da seção anterior.
+To run the API on the host machine, adjust `DATABASE_URL` to point to a PostgreSQL
+instance accessible from outside the Compose network. The recommended way to start
+the full stack is the `docker compose up --build` command from the previous section.
 
 ## API
 
-### Planos
+### Plans
 
 ```text
 POST   /plans
@@ -118,7 +118,7 @@ DELETE /plans/{plan_id}/steps/{step_id}
 PATCH  /plans/{plan_id}/steps/reorder
 ```
 
-### Execuções
+### Executions
 
 ```text
 POST   /plans/{plan_id}/executions
@@ -128,12 +128,12 @@ POST   /plans/{plan_id}/executions/{execution_id}/cancel
 POST   /plans/{plan_id}/executions/{execution_id}/retry
 ```
 
-Exemplo de step:
+Step example:
 
 ```json
 {
   "sequence": 1,
-  "name": "Criar pedido",
+  "name": "Create order",
   "action": {
     "type": "http",
     "method": "POST",
@@ -148,14 +148,14 @@ Exemplo de step:
 }
 ```
 
-`sequence` é opcional na criação. Quando omitida, a API usa a próxima posição
-do plano. A reordenação recebe todos os steps com sequências contíguas:
+`sequence` is optional when creating a step. When omitted, the API uses the next
+position in the plan. Reordering receives all steps with contiguous sequences:
 
 ```json
 {"steps": [{"step_id": 2, "sequence": 1}, {"step_id": 1, "sequence": 2}]}
 ```
 
-Execução imediata:
+Immediate execution:
 
 ```bash
 curl -X POST http://localhost:8000/plans/1/executions \
@@ -163,21 +163,20 @@ curl -X POST http://localhost:8000/plans/1/executions \
   -d '{}'
 ```
 
-Execução futura usa uma data ISO 8601 com timezone:
+Future execution uses an ISO 8601 datetime with timezone:
 
 ```json
 {"scheduled_for": "2026-06-28T18:00:00-03:00"}
 ```
 
-### Variáveis entre StepExecutions
+### Variables Between StepExecutions
 
-Um step pode declarar valores a serem extraídos da resposta. Durante uma
-`Execution`, as `StepExecutions` seguintes podem usar
-templates `{{variavel}}` na URL, headers, body e valores esperados das assertions.
-As variáveis pertencem à `Execution`, não ao `Plan`, e são persistidas no
-PostgreSQL.
+A step can declare values to be extracted from the response. During an `Execution`,
+subsequent `StepExecutions` can use `{{variable}}` templates in the URL, headers,
+body, and expected assertion values. Variables belong to the `Execution`, not to the
+`Plan`, and are persisted in PostgreSQL.
 
-Exemplo de login que captura um token:
+Example login step that captures a token:
 
 ```json
 {
@@ -192,11 +191,11 @@ Exemplo de login que captura um token:
 }
 ```
 
-O step seguinte reutiliza o valor:
+The next step reuses the value:
 
 ```json
 {
-  "name": "Consultar perfil",
+  "name": "Get profile",
   "action": {
     "method": "GET",
     "url": "https://api.example.com/me",
@@ -209,44 +208,47 @@ O step seguinte reutiliza o valor:
 }
 ```
 
-As fontes suportadas para extração são `body.caminho.aninhado`,
-`header.Nome-Do-Header` e `status_code`. Também é possível fornecer variáveis
-iniciais ao iniciar uma execução:
+The supported extraction sources are `body.nested.path`, `header.Header-Name`,
+and `status_code`. It is also possible to provide initial variables when starting
+an execution:
 
 ```json
 {"variables": {"tenant": "acme"}}
 ```
 
-## Realtime e controle
+## Realtime and Control
 
-Conecte ao WebSocket para acompanhar uma `Execution` do plano inteiro. Os eventos
-informam `plan_id`, `execution_id`, step atual, quantidade concluída e total de
-steps.
-O próximo step só é enfileirado após `step.execution.completed.v1`; uma falha
-encerra a execução do plano.
-Para controlar uma execução, envie:
+Connect to the WebSocket to follow an entire plan `Execution`. Events include
+`plan_id`, `execution_id`, the current step, the number of completed steps, and the
+total number of steps.
+
+The next step is only enqueued after `step.execution.completed.v1`; a failure ends
+the plan execution.
+
+To control an execution, send:
 
 ```json
 {"command": "stop", "execution_id": "uuid"}
 ```
 
-ou:
+or:
 
 ```json
 {"command": "restart", "execution_id": "uuid"}
 ```
 
-O comando também vira evento no Kafka. O dispatcher revoga ou recria a task Celery.
+The command also becomes an event in Kafka. The dispatcher revokes or recreates the
+Celery task.
 
-## Banco e migrações
+## Database and Migrations
 
 ```bash
 .venv/bin/alembic upgrade head
 .venv/bin/alembic downgrade -1
-.venv/bin/alembic revision --autogenerate -m "descricao"
+.venv/bin/alembic revision --autogenerate -m "description"
 ```
 
-## Qualidade
+## Quality
 
 ```bash
 .venv/bin/pyright
@@ -254,4 +256,4 @@ O comando também vira evento no Kafka. O dispatcher revoga ou recria a task Cel
 RUN_INTEGRATION_TESTS=1 .venv/bin/pytest tests/integration -v --no-cov
 ```
 
-Os testes de integração usam Testcontainers e exigem Docker.
+Integration tests use Testcontainers and require Docker.
