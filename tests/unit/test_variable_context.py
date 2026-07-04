@@ -46,16 +46,17 @@ def test_extracts_body_header_and_status_values() -> None:
         status_code=201,
         latency_ms=2,
         headers={"X-Request-Id": "abc"},
-        body={"auth": {"access_token": "jwt"}},
+        body={"auth": {"access_token": "jwt"}, "items": [{"id": 42}]},
     )
     assert extract_variables(
         {
             "token": "body.auth.access_token",
+            "first_item_id": "body.items.0.id",
             "request_id": "header.X-Request-Id",
             "code": "status_code",
         },
         result,
-    ) == {"token": "jwt", "request_id": "abc", "code": 201}
+    ) == {"token": "jwt", "first_item_id": 42, "request_id": "abc", "code": 201}
 
 
 def test_rejects_missing_variables_and_extraction_paths() -> None:
